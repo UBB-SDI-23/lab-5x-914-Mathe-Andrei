@@ -10,7 +10,7 @@ export const AppMenu = () => {
             <AppBar position={"static"}>
                 <Toolbar>
                     <Button component={Link} to={"/"} disableRipple={true}>
-                        <img style={{width: "50px", marginRight: "10px"}} src={"src/assets/brain.png"} alt={"brainbox-logo"}/>
+                        <img style={{width: "50px", marginRight: "10px"}} src={"../../assets/brain.png"} alt={"brainbox-logo"}/>
                     </Button>
                     <Typography variant={"h6"}>BrainBox</Typography>
                     <Button
