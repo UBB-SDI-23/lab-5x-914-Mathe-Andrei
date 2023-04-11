@@ -67,6 +67,7 @@ export const UserDetails = () => {
             navigate(-1);
     }
 
+    // @ts-ignore
     return (
         <Container sx={{display: "flex", flexDirection: "column", alignItems: "center", mt: 3}}>
             {loading && <CircularProgress/>}

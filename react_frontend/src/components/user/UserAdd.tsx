@@ -15,6 +15,7 @@ export const UserAdd = () => {
     const navigate = useNavigate();
 
     const [user, setUser] = useState<User>({
+        id: 0,
         username: "",
         email: "",
         password: ""

@@ -2,7 +2,7 @@ import {Folder} from "./Folder";
 import {SharedFile} from "./SharedFile";
 
 export interface User {
-    id?: number;
+    id: number;
     username: string;
     email: string;
     password: string;

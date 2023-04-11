@@ -4,7 +4,7 @@ import {BACKEND_API_URL} from "../../constants";
 
 interface Props {
     open: boolean,
-    userId: string | number,
+    userId?: string | number,
     onClose: (wasDeleted: boolean) => void
 }
 

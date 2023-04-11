@@ -37,7 +37,7 @@ export const UserList = () => {
     }, [refreshUsers]);
 
     const [orderColumn, setOrderColumn] = useState("id");
-    const [orderDirection, setOrderDirection] = useState("asc");
+    const [orderDirection, setOrderDirection] = useState<"asc" | "desc">("asc");
 
     const handleSort = (column: string) => {
         let newOrderColumn = column;
@@ -52,6 +52,7 @@ export const UserList = () => {
             }
         }
         setOrderColumn(newOrderColumn);
+        // @ts-ignore
         setOrderDirection(newOrderDirection);
     };
 
@@ -64,14 +65,18 @@ export const UserList = () => {
         });
         return info.sort((a, b) => {
             if (direction == "asc")
-                return (a[column] < b[column]) ? -1 : 1;
+                { // @ts-ignore
+                    return (a[column] < b[column]) ? -1 : 1;
+                }
             else
-                return (a[column] > b[column]) ? -1 : 1;
+                { // @ts-ignore
+                    return (a[column] > b[column]) ? -1 : 1;
+                }
         });
     };
 
     const [openDeleteDialog, setOpenDeleteDialog] = useState<boolean>(false);
-    const [userId, setUserId] = useState<number>();
+    const [userId, setUserId] = useState<number>(0);
 
     const handleDelete = (value: number) => {
         setUserId(value);
