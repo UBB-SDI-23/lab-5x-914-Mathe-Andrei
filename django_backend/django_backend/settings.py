@@ -27,7 +27,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-CORS_ORIGIN_WHITELIST = ['http://127.0.0.1:5173']
+CORS_ORIGIN_WHITELIST = ['https://brainbox-app.netlify.app', 'http://127.0.0.1:5173']
 
 
 # Application definition
