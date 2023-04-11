@@ -58,7 +58,7 @@ export const UserEdit = () => {
                         </IconButton>
                     </CardActions>
                     <CardContent>
-                        <form onSubmit={editUser}>
+                        <form>
                             <TextField
                                 id={"username"}
                                 label={"username"}
@@ -89,7 +89,7 @@ export const UserEdit = () => {
                         </form>
                     </CardContent>
                     <CardActions sx={{justifyContent: "flex-end"}}>
-                        <Button type={"submit"}>Save</Button>
+                        <Button onClick={editUser}>Save</Button>
                     </CardActions>
                 </Card>
             )}
