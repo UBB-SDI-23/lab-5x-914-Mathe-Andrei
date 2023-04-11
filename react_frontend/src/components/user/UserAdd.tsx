@@ -21,8 +21,7 @@ export const UserAdd = () => {
         password: ""
     });
 
-    const addUser = async (event: {preventDefault: () => void}) => {
-        event.preventDefault();
+    const addUser = async () => {
         try {
             await axios.post(`${BACKEND_API_URL}/users/`, user);
             navigate("/users/");
@@ -40,7 +39,7 @@ export const UserAdd = () => {
                     </IconButton>
                 </CardActions>
                 <CardContent>
-                    <form onSubmit={addUser}>
+                    <form>
                         <TextField
                             id={"username"}
                             label={"username"}
@@ -68,7 +67,7 @@ export const UserAdd = () => {
                     </form>
                 </CardContent>
                 <CardActions sx={{justifyContent: "flex-end"}}>
-                    <Button type={"submit"}>Add user</Button>
+                    <Button onClick={addUser}>Add user</Button>
                 </CardActions>
             </Card>
         </Container>
