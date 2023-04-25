@@ -21,6 +21,7 @@ import ArticleIcon from '@mui/icons-material/Article';
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import {UserDelete} from "./UserDelete";
+import {File} from "../../models/File";
 
 export const UserDetails = () => {
     const {id} = useParams();
@@ -98,12 +99,12 @@ export const UserDetails = () => {
                             <Typography paragraph={true} align={"left"}>Shared files:</Typography>
                             <List>
                                 {user?.shared_files.map((shared_file) => (
-                                    <ListItemButton component={Link} key={shared_file.file.id} sx={{ml: 3}} to={`/file/${shared_file.file.id}/details`}>
+                                    <ListItemButton component={Link} key={(shared_file.file as File).id} sx={{ml: 3}} to={`/file/${(shared_file.file as File).id}/details`}>
                                         <ListItemIcon>
                                             <ArticleIcon/>
                                         </ListItemIcon>
                                         <ListItemText
-                                            primary={shared_file.file.name}
+                                            primary={(shared_file.file as File).name}
                                         />
                                     </ListItemButton>
                                 ))}
