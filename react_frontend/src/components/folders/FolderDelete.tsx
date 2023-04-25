@@ -1,19 +1,17 @@
 import {Button, Dialog, DialogActions, DialogTitle} from "@mui/material";
 import axios from "axios";
 import {BACKEND_API_URL} from "../../constants";
-import {Simulate} from "react-dom/test-utils";
-import error = Simulate.error;
 
 interface Props {
     open: boolean,
-    userId?: string | number,
+    folderId?: string | number,
     onClose: (wasDeleted: boolean) => void
 }
 
-export const UserDelete = ({open, userId, onClose}: Props) => {
-    const handleConfirm = async (event: { preventDefault: () => void }) => {
+export const FolderDelete = ({open, folderId, onClose}: Props) => {
+    const handleConfirm = async (event: {preventDefault: () => void}) => {
         event.preventDefault();
-        await axios.delete(`${BACKEND_API_URL}/user/${userId}/`)
+        await axios.delete(`${BACKEND_API_URL}/folder/${folderId}/`)
             .catch((error) => console.log(error));
         onClose(true);
     };
@@ -21,7 +19,7 @@ export const UserDelete = ({open, userId, onClose}: Props) => {
     const handleCancel = (event: {preventDefault: () => void}) => {
         event.preventDefault();
         onClose(false);
-    };
+    }
 
     return (
         <Dialog open={open} PaperProps={{sx: {p: 1}}}>

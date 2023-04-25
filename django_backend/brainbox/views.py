@@ -7,8 +7,14 @@ from brainbox.serializers import *
 
 
 class UsersEndpoint(generics.ListCreateAPIView):
-    queryset = User.objects.all()
     serializer_class = UserSerializerList
+
+    def get_queryset(self):
+        queryset = User.objects.all()
+        query = self.request.query_params.get('query')
+        if query:
+            queryset = User.objects.filter(username__icontains=query)
+        return queryset
 
 
 class UserEndpoint(generics.RetrieveUpdateDestroyAPIView):
@@ -17,8 +23,23 @@ class UserEndpoint(generics.RetrieveUpdateDestroyAPIView):
 
 
 class FoldersEndpoint(generics.ListCreateAPIView):
-    queryset = Folder.objects.all()
     serializer_class = FolderSerializerList
+
+    def get_queryset(self):
+        queryset = Folder.objects.all()
+        name = self.request.query_params.get('name')
+        username = self.request.query_params.get('username')
+
+        filters = {}
+        if name:
+            filters['name__icontains'] = name
+        if username:
+            filters['user__username'] = username
+
+        if filters:
+            queryset = Folder.objects.filter(**filters)
+
+        return queryset
 
 
 class FolderEndpoint(generics.RetrieveUpdateDestroyAPIView):
@@ -55,23 +76,25 @@ class FileEndpoint(generics.RetrieveUpdateDestroyAPIView):
 class UserSharedFilesEndpoint(views.APIView):
     def post(self, request, pk):
         serializer = SharedFileSerializer(data=request.data, exclude_fields=['user'])
+        serializer.fields['file'] = serializers.PrimaryKeyRelatedField(queryset=File.objects.all())
         user = get_object_or_404(User, id=pk)
         serializer.initial_data['user'] = user
         if serializer.is_valid():
             serializer.save(user=user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_204_NO_CONTENT)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class FileSharedFilesEndpoint(views.APIView):
     def post(self, request, pk):
         serializer = SharedFileSerializer(data=request.data, exclude_fields=['file'])
+        serializer.fields['user'] = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
         file = get_object_or_404(File, id=pk)
         serializer.initial_data['file'] = file
         if serializer.is_valid():
             serializer.save(file=file)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_204_NO_CONTENT)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class SharedFileEndpoint(mixins.UpdateModelMixin, mixins.DestroyModelMixin, generics.GenericAPIView):
@@ -121,4 +144,4 @@ class FolderFilesEndpoint(views.APIView):
         if serializer.is_valid():
             serializer.save(folder=folder, using='')
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_204_NO_CONTENT)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

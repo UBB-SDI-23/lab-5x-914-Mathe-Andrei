@@ -1,13 +1,14 @@
 import {Folder} from "./Folder";
 import {User} from "./User";
+import {SharedFile} from "./SharedFile";
 
 export interface File {
     id: number;
     name: string;
     content: string;
-    user: User;
-    folder: Folder;
+    user: number | User;
+    folder: number | Folder;
     created_at: string;
     updated_at: string;
-    shared_users: User[];
+    shared_users: SharedFile[];
 }

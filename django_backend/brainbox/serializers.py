@@ -34,12 +34,22 @@ class UserSerializerList(serializers.ModelSerializer):
 
 
 class FolderSerializerList(serializers.ModelSerializer):
-    def validate_parent_folder(self, parent_folder):
-        if parent_folder is not None:
-            user = self.initial_data['user']
-            if parent_folder.user != user:
-                raise serializers.ValidationError('Parent folder must be created by the same user.')
-        return parent_folder
+    def validate(self, data):
+        errors = {}
+        try:
+            data = super().validate(data)
+        except serializers.ValidationError as ve:
+            errors = ve.detail
+
+        user = data['user']
+        parent_folder = data['parent_folder']
+        if parent_folder is not None and user != parent_folder.user:
+            raise serializers.ValidationError('Parent folder must be created by the same user.')
+
+        if errors:
+            raise serializers.ValidationError(errors)
+
+        return data
 
     class Meta:
         model = Folder
@@ -47,12 +57,22 @@ class FolderSerializerList(serializers.ModelSerializer):
 
 
 class FileSerializerList(serializers.ModelSerializer):
-    def validate_folder(self, folder):
-        if folder is not None:
-            user = self.initial_data['user']
-            if folder.user != user:
-                raise serializers.ValidationError('Folder must be created by the same user.')
-        return folder
+    def validate(self, data):
+        errors = {}
+        try:
+            data = super().validate(data)
+        except serializers.ValidationError as ve:
+            errors = ve.detail
+
+        user = data['user']
+        folder = data['folder']
+        if folder is not None and user != folder.user:
+            raise serializers.ValidationError('Folder must be created by the same user.')
+
+        if errors:
+            raise serializers.ValidationError(errors)
+
+        return data
 
     class Meta:
         model = File
@@ -60,6 +80,9 @@ class FileSerializerList(serializers.ModelSerializer):
 
 
 class SharedFileSerializer(DynamicFieldsModelSerializer):
+    user = UserSerializerList(read_only=True)
+    file = FileSerializerList(read_only=True)
+
     def validate(self, data):
         errors = {}
         try:
@@ -70,12 +93,12 @@ class SharedFileSerializer(DynamicFieldsModelSerializer):
         if 'user' in data:
             user = data['user']
             file = self.initial_data['file']
-            if file.user != user:
+            if file.user == user:
                 errors['user'] = ['User cannot be the owner of the file.']
         if 'file' in data:
             file = data['file']
             user = self.initial_data['user']
-            if user != file.user:
+            if user == file.user:
                 errors['file'] = ['File cannot be shared to its owner.']
 
         if errors:
@@ -104,6 +127,8 @@ class FolderSerializerDetail(serializers.ModelSerializer):
 
     def validate_parent_folder(self, parent_folder):
         if parent_folder is not None:
+            if parent_folder == self.instance:
+                raise serializers.ValidationError('Folder cannot be its own parent folder.')
             user = self.instance.user
             if parent_folder.user != user:
                 raise serializers.ValidationError('Parent folder must be created by the same user.')

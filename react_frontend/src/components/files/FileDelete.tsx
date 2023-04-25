@@ -6,14 +6,14 @@ import error = Simulate.error;
 
 interface Props {
     open: boolean,
-    userId?: string | number,
+    fileId?: string | number,
     onClose: (wasDeleted: boolean) => void
 }
 
-export const UserDelete = ({open, userId, onClose}: Props) => {
+export const FileDelete = ({open, fileId, onClose}: Props) => {
     const handleConfirm = async (event: { preventDefault: () => void }) => {
         event.preventDefault();
-        await axios.delete(`${BACKEND_API_URL}/user/${userId}/`)
+        await axios.delete(`${BACKEND_API_URL}/file/${fileId}/`)
             .catch((error) => console.log(error));
         onClose(true);
     };

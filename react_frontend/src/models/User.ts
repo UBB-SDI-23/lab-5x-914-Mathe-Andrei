@@ -6,9 +6,9 @@ export interface User {
     username: string;
     email: string;
     password: string;
-    created_at?: string;
-    updated_at?: string;
-    folders?: Folder[];
-    shared_files?: SharedFile[];
+    created_at: string;
+    updated_at: string;
+    folders: Folder[];
+    shared_files: SharedFile[];
     written_chars?: number;
 }

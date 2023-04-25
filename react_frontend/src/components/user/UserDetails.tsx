@@ -18,8 +18,6 @@ import {BACKEND_API_URL} from "../../constants";
 import {ArrowBack} from "@mui/icons-material";
 import FolderIcon from "@mui/icons-material/Folder"
 import ArticleIcon from '@mui/icons-material/Article';
-import {SharedFile} from "../../models/SharedFile";
-import {File} from "../../models/File"
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import {UserDelete} from "./UserDelete";
@@ -28,49 +26,39 @@ export const UserDetails = () => {
     const {id} = useParams();
     const navigate = useNavigate();
 
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<User>();
-    const [sharedFiles, setSharedFiles] = useState<File[]>([]);
-
-    const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
     useEffect(() => {
         setLoading(true);
-
-        const fetchUser = async () => {
-            await axios.get(`${BACKEND_API_URL}/user/${id}/`)
+        axios.get(`${BACKEND_API_URL}/user/${id}/`)
                 .then((response) => {
                     setUser(response.data);
-
-                    const promises = response.data.shared_files?.map((shared_file: SharedFile) => {
-                        return axios.get(`${BACKEND_API_URL}/file/${shared_file.file}/`)
-                            .then((response) => response.data)
-                            .catch((error) => console.log(error));
-                    });
-
-                    Promise.all(promises).then((responses) => setSharedFiles(responses));
-
                     setLoading(false);
                 })
                 .catch((error) => console.log(error));
-        };
-        fetchUser();
-    }, [id]);
+    }, []);
+
+    const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
     const handleDelete = () => {
         setOpenDeleteDialog(true);
-    }
+    };
 
     const handleOnClose = (wasDeleted: boolean) => {
         setOpenDeleteDialog(false);
         if (wasDeleted)
             navigate(-1);
-    }
+    };
 
     // @ts-ignore
     return (
-        <Container sx={{display: "flex", flexDirection: "column", alignItems: "center", mt: 3}}>
-            {loading && <CircularProgress/>}
+        <Container sx={{display: "flex", flexDirection: "column", alignItems: "center", mt: 3, mb: 3}}>
+            {loading && (
+                <Box>
+                    <CircularProgress sx={{mt: 3}}/>
+                </Box>
+            )}
             {!loading && (
                 <>
                     <Card>
@@ -109,13 +97,13 @@ export const UserDetails = () => {
                             </List>
                             <Typography paragraph={true} align={"left"}>Shared files:</Typography>
                             <List>
-                                {sharedFiles.map((file: File) => (
-                                    <ListItemButton component={Link} key={file.id} sx={{ml: 3}} to={`/file/${file.id}/details`}>
+                                {user?.shared_files.map((shared_file) => (
+                                    <ListItemButton component={Link} key={shared_file.file.id} sx={{ml: 3}} to={`/file/${shared_file.file.id}/details`}>
                                         <ListItemIcon>
                                             <ArticleIcon/>
                                         </ListItemIcon>
                                         <ListItemText
-                                            primary={file.name}
+                                            primary={shared_file.file.name}
                                         />
                                     </ListItemButton>
                                 ))}

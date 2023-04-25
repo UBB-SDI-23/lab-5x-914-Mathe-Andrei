@@ -2,7 +2,7 @@ from django.db import models
 
 
 class User(models.Model):
-    username = models.CharField(max_length=100)
+    username = models.CharField(max_length=100, unique=True)
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -25,7 +25,7 @@ class Folder(models.Model):
 
 class File(models.Model):
     name = models.CharField(max_length=100)
-    content = models.TextField(blank=True)
+    content = models.TextField(blank=True, default='')
     folder = models.ForeignKey(Folder, on_delete=models.CASCADE, null=True, blank=True, related_name='files')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='personal_files')
     shared_users = models.ManyToManyField(User, through='SharedFile')

@@ -2,7 +2,7 @@ import {
     CardContent,
     Container,
     Card,
-    IconButton, TextField, Button, CircularProgress, CardActions
+    IconButton, TextField, Button, CircularProgress, CardActions, Box
 } from "@mui/material";
 import React, {useEffect, useState} from "react";
 import {useNavigate, useParams} from "react-router-dom";
@@ -15,16 +15,16 @@ export const UserEdit = () => {
     const {id} = useParams();
     const navigate = useNavigate();
 
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<User>({
-        id: 0,
+        id: NaN,
         username: "",
         email: "",
         password: "",
-        created_at: "",
-        updated_at: "",
         folders: [],
-        shared_files: []
+        shared_files: [],
+        created_at: "",
+        updated_at: ""
     });
 
     useEffect(() => {
@@ -48,10 +48,14 @@ export const UserEdit = () => {
     };
 
     return (
-        <Container sx={{display: "flex", flexDirection: "column", alignItems: "center", mt: 3}}>
-            {loading && <CircularProgress/>}
+        <Container sx={{display: "flex", flexDirection: "column", alignItems: "center", mt: 3, mb: 3}}>
+            {loading && (
+                <Box>
+                    <CircularProgress sx={{mt: 3}}/>
+                </Box>
+            )}
             {!loading && (
-                <Card>
+                <Card sx={{width: "100%"}}>
                     <CardActions>
                         <IconButton sx={{ mr: 3 }} onClick={() => navigate(-1)}>
                             <ArrowBack/>

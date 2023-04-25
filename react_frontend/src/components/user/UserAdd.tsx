@@ -15,10 +15,14 @@ export const UserAdd = () => {
     const navigate = useNavigate();
 
     const [user, setUser] = useState<User>({
-        id: 0,
+        id: NaN,
         username: "",
         email: "",
-        password: ""
+        password: "",
+        folders: [],
+        shared_files: [],
+        created_at: "",
+        updated_at: ""
     });
 
     const addUser = async () => {
@@ -31,8 +35,8 @@ export const UserAdd = () => {
     };
 
     return (
-        <Container sx={{display: "flex", flexDirection: "column", alignItems: "center", mt: 3}}>
-            <Card>
+        <Container sx={{display: "flex", flexDirection: "column", alignItems: "center", mt: 3, mb: 3}}>
+            <Card sx={{width: "100%"}}>
                 <CardActions>
                     <IconButton sx={{ mr: 3 }} onClick={() => navigate(-1)}>
                         <ArrowBack/>
