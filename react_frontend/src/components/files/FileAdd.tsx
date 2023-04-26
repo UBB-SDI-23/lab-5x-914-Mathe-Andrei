@@ -51,7 +51,7 @@ export const FileAdd = () => {
 
     const fetchUsers = async (query: string) => {
         try {
-            const response = await axios.get<User[]>(`${BACKEND_API_URL}/users?query=${query}`);
+            const response = await axios.get<User[]>(`${BACKEND_API_URL}/users?page=1&username=${query}`);
             const data = await response.data;
             setUsers(data);
         } catch (error) {
@@ -61,7 +61,7 @@ export const FileAdd = () => {
 
     const fetchFolders = async (query: string) => {
         try {
-            const response = await axios.get<Folder[]>(`${BACKEND_API_URL}/folders?name=${query}&username=${selectedUser?.username}`);
+            const response = await axios.get<Folder[]>(`${BACKEND_API_URL}/folders?page=1&name=${query}&username=${selectedUser?.username}`);
             const data = await response.data;
             setFolders(data);
         } catch (error) {

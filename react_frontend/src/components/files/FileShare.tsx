@@ -36,7 +36,7 @@ export const FileShare = ({open, file, onClose}: Props) => {
 
     const fetchUsers = async (query: string) => {
         try {
-            const response = await axios.get<User[]>(`${BACKEND_API_URL}/users?query=${query}`);
+            const response = await axios.get<User[]>(`${BACKEND_API_URL}/users?page=1&username=${query}`);
             let data = await response.data;
             data = data.filter((value) => value.id != (file.user as User).id);
             setUsers(data);

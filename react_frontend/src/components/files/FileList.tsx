@@ -20,22 +20,26 @@ import EditIcon from "@mui/icons-material/Edit"
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever"
 import axios from "axios";
 import {FileDelete} from "./FileDelete";
+import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
+import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 
 export const FileList = () => {
     const [loading, setLoading] = useState(true);
     const [files, setFiles] = useState([]);
     const [refreshFiles, setRefreshFiles] = useState(false);
+    const [pageNumber, setPageNumber] = useState<number>(1);
+    const itemsPerPage = 25;
 
     useEffect(() => {
         setLoading(true);
         setRefreshFiles(false);
-        axios.get(`${BACKEND_API_URL}/files/`)
+        axios.get(`${BACKEND_API_URL}/files?page=${pageNumber}`)
             .then((response) => {
                 setFiles(response.data);
                 setLoading(false);
             })
             .catch((error) => console.log(error));
-    }, [refreshFiles]);
+    }, [refreshFiles, pageNumber]);
 
     const [orderColumn, setOrderColumn] = useState("id");
     const [orderDirection, setOrderDirection] = useState<"asc" | "desc">("asc");
@@ -60,7 +64,7 @@ export const FileList = () => {
     const sortedInfo = (column: string, direction: string) => {
         const info = files.map((file: File, index) => {
             return {
-                index: index + 1,
+                index: (pageNumber - 1) * itemsPerPage + index + 1,
                 ...file
             }
         });
@@ -89,6 +93,14 @@ export const FileList = () => {
         if (wasDeleted)
             setRefreshFiles(true);
     }
+
+    const handleOnPreviousPage = () => {
+        setPageNumber(pageNumber - 1);
+    };
+
+    const handleOnNextPage = () => {
+        setPageNumber(pageNumber + 1);
+    };
 
     return (
         <Container sx={{display: "flex", flexDirection: "column", alignItems: "center", mt: 3, mb: 3}}>
@@ -153,6 +165,14 @@ export const FileList = () => {
                             </TableBody>
                         </Table>
                     </TableContainer>
+                    <Box sx={{mt: 2, gap: 1}}>
+                        <IconButton disabled={pageNumber == 1} onClick={handleOnPreviousPage}>
+                            <NavigateBeforeIcon color={"primary"} fontSize={"large"}/>
+                        </IconButton>
+                        <IconButton onClick={handleOnNextPage}>
+                            <NavigateNextIcon color={"primary"} fontSize={"large"}/>
+                        </IconButton>
+                    </Box>
                     <FileDelete open={openDeleteDialog} fileId={fileId} onClose={handleOnClose}/>
                 </>
             )}

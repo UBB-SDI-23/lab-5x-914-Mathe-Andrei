@@ -67,7 +67,7 @@ export const FileEdit = () => {
 
     const fetchFolders = async (query: string) => {
         try {
-            const response = await axios.get<Folder[]>(`${BACKEND_API_URL}/folders?name=${query}&username=${(file.user as User).username}`);
+            const response = await axios.get<Folder[]>(`${BACKEND_API_URL}/folders?page=1&name=${query}&username=${(file.user as User).username}`);
             const data = await response.data;
             setFolders(data);
         } catch (error) {

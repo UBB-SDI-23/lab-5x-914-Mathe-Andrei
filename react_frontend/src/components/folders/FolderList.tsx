@@ -19,22 +19,26 @@ import axios from "axios";
 import {BACKEND_API_URL} from "../../constants";
 import {Folder} from "../../models/Folder";
 import {FolderDelete} from "./FolderDelete";
+import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
+import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 
 export const FolderList = () => {
     const [loading, setLoading] = useState(true);
     const [folders, setFolders] = useState([]);
     const [refreshFolders, setRefreshFolders] = useState(false);
+    const [pageNumber, setPageNumber] = useState<number>(1);
+    const itemsPerPage = 25;
 
     useEffect(() => {
         setLoading(true);
         setRefreshFolders(false);
-        axios.get(`${BACKEND_API_URL}/folders/`)
+        axios.get(`${BACKEND_API_URL}/folders?page=${pageNumber}`)
             .then((response) => {
                 setFolders(response.data);
                 setLoading(false);
             })
             .catch((error) => console.log(error));
-    }, [refreshFolders]);
+    }, [refreshFolders, pageNumber]);
 
     const [orderColumn, setOrderColumn] = useState("id");
     const [orderDirection, setOrderDirection] = useState<"asc" | "desc">("asc");
@@ -59,7 +63,7 @@ export const FolderList = () => {
     const sortedInfo = (column: string, direction: string) => {
         const info = folders.map((folder: Folder, index) => {
             return {
-                index: index + 1,
+                index: (pageNumber - 1) * itemsPerPage + index + 1,
                 ...folder
             }
         });
@@ -88,6 +92,14 @@ export const FolderList = () => {
         if (wasDeleted)
             setRefreshFolders(true);
     }
+
+    const handleOnPreviousPage = () => {
+        setPageNumber(pageNumber - 1);
+    };
+
+    const handleOnNextPage = () => {
+        setPageNumber(pageNumber + 1);
+    };
 
     return (
         <Container sx={{display: "flex", flexDirection: "column", alignItems: "center", mt: 3, mb: 3}}>
@@ -152,6 +164,14 @@ export const FolderList = () => {
                             </TableBody>
                         </Table>
                     </TableContainer>
+                    <Box sx={{mt: 2, gap: 1}}>
+                        <IconButton disabled={pageNumber == 1} onClick={handleOnPreviousPage}>
+                            <NavigateBeforeIcon color={"primary"} fontSize={"large"}/>
+                        </IconButton>
+                        <IconButton onClick={handleOnNextPage}>
+                            <NavigateNextIcon color={"primary"} fontSize={"large"}/>
+                        </IconButton>
+                    </Box>
                     <FolderDelete open={openDeleteDialog} folderId={folderId} onClose={handleOnClose}/>
                 </>
             )}

@@ -1,3 +1,4 @@
+from django.core.paginator import Paginator
 from django.db.models import Sum, Count
 from django.db.models.functions import Length
 from rest_framework import generics, mixins, views, status
@@ -11,9 +12,19 @@ class UsersEndpoint(generics.ListCreateAPIView):
 
     def get_queryset(self):
         queryset = User.objects.all()
-        query = self.request.query_params.get('query')
-        if query:
-            queryset = User.objects.filter(username__icontains=query)
+
+        page_number = self.request.query_params.get('page')
+
+        username = self.request.query_params.get('username')
+
+        if username:
+            queryset = User.objects.filter(username__icontains=username)
+
+        if page_number:
+            paginator = Paginator(queryset, 25)
+            page_obj = paginator.get_page(page_number)
+            queryset = page_obj.object_list
+
         return queryset
 
 
@@ -27,17 +38,25 @@ class FoldersEndpoint(generics.ListCreateAPIView):
 
     def get_queryset(self):
         queryset = Folder.objects.all()
-        name = self.request.query_params.get('name')
+
+        page_number = self.request.query_params.get('page')
+
         username = self.request.query_params.get('username')
+        name = self.request.query_params.get('name')
 
         filters = {}
-        if name:
-            filters['name__icontains'] = name
         if username:
             filters['user__username'] = username
+        if name:
+            filters['name__icontains'] = name
 
         if filters:
             queryset = Folder.objects.filter(**filters)
+
+        if page_number:
+            paginator = Paginator(queryset, 25)
+            page_obj = paginator.get_page(page_number)
+            queryset = page_obj.object_list
 
         return queryset
 
@@ -56,8 +75,19 @@ class FolderEndpoint(generics.RetrieveUpdateDestroyAPIView):
 
 
 class FilesEndpoint(generics.ListCreateAPIView):
-    queryset = File.objects.all()
     serializer_class = FileSerializerList
+
+    def get_queryset(self):
+        queryset = File.objects.all()
+
+        page_number = self.request.query_params.get('page')
+
+        if page_number:
+            paginator = Paginator(queryset, 25)
+            page_obj = paginator.get_page(page_number)
+            queryset = page_obj.object_list
+
+        return queryset
 
 
 class FileEndpoint(generics.RetrieveUpdateDestroyAPIView):
@@ -125,6 +155,14 @@ class UsersByCharsWritten(generics.ListAPIView):
 
     def get_queryset(self):
         queryset = User.objects.annotate(written_chars=Sum(Length('personal_files__content'))).order_by('-written_chars')
+
+        page_number = self.request.query_params.get('page')
+
+        if page_number:
+            paginator = Paginator(queryset, 25)
+            page_obj = paginator.get_page(page_number)
+            queryset = page_obj.object_list
+
         return queryset
 
 

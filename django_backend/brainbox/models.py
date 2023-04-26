@@ -2,7 +2,7 @@ from django.db import models
 
 
 class User(models.Model):
-    username = models.CharField(max_length=100, unique=True)
+    username = models.CharField(max_length=100, unique=True, db_index=True)
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -13,7 +13,7 @@ class User(models.Model):
 
 
 class Folder(models.Model):
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100, db_index=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='folders')
     parent_folder = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='child_folders')
     created_at = models.DateTimeField(auto_now_add=True)

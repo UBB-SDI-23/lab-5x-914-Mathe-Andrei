@@ -14,10 +14,12 @@ import {
     Tooltip,
     Container, Typography, Box, TableSortLabel
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add"
-import ReadMoreIcon from "@mui/icons-material/ReadMore"
-import EditIcon from "@mui/icons-material/Edit"
-import DeleteForeverIcon from "@mui/icons-material/DeleteForever"
+import AddIcon from "@mui/icons-material/Add";
+import ReadMoreIcon from "@mui/icons-material/ReadMore";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
+import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import axios from "axios";
 import {UserDelete} from "./UserDelete";
 
@@ -25,17 +27,19 @@ export const UserList = () => {
     const [loading, setLoading] = useState(true);
     const [users, setUsers] = useState([]);
     const [refreshUsers, setRefreshUsers] = useState(false);
+    const [pageNumber, setPageNumber] = useState<number>(1);
+    const itemsPerPage = 25;
 
     useEffect(() => {
         setLoading(true);
         setRefreshUsers(false);
-        axios.get(`${BACKEND_API_URL}/users/`)
+        axios.get(`${BACKEND_API_URL}/users?page=${pageNumber}`)
             .then((response) => {
                 setUsers(response.data);
                 setLoading(false);
             })
             .catch((error) => console.log(error));
-    }, [refreshUsers]);
+    }, [refreshUsers, pageNumber]);
 
     const [orderColumn, setOrderColumn] = useState("id");
     const [orderDirection, setOrderDirection] = useState<"asc" | "desc">("asc");
@@ -60,7 +64,7 @@ export const UserList = () => {
     const sortedInfo = (column: string, direction: string) => {
         const info = users.map((user: User, index) => {
             return {
-                index: index + 1,
+                index: (pageNumber - 1) * itemsPerPage + index + 1,
                 ...user
             }
         });
@@ -89,6 +93,14 @@ export const UserList = () => {
         if (wasDeleted)
             setRefreshUsers(true);
     }
+
+    const handleOnPreviousPage = () => {
+        setPageNumber(pageNumber - 1);
+    };
+
+    const handleOnNextPage = () => {
+        setPageNumber(pageNumber + 1);
+    };
 
     return (
         <Container sx={{display: "flex", flexDirection: "column", alignItems: "center", mt: 3, mb: 3}}>
@@ -173,6 +185,14 @@ export const UserList = () => {
                             </TableBody>
                         </Table>
                     </TableContainer>
+                    <Box sx={{mt: 2, gap: 1}}>
+                        <IconButton disabled={pageNumber == 1} onClick={handleOnPreviousPage}>
+                            <NavigateBeforeIcon color={"primary"} fontSize={"large"}/>
+                        </IconButton>
+                        <IconButton onClick={handleOnNextPage}>
+                            <NavigateNextIcon color={"primary"} fontSize={"large"}/>
+                        </IconButton>
+                    </Box>
                     <UserDelete open={openDeleteDialog} userId={userId} onClose={handleOnClose}/>
                 </>
             )}

@@ -62,7 +62,7 @@ export const FolderEdit = () => {
 
     const fetchFolders = async (query: string) => {
         try {
-            const response = await axios.get<Folder[]>(`${BACKEND_API_URL}/folders?name=${query}&username=${(folder.user as User).username}`);
+            const response = await axios.get<Folder[]>(`${BACKEND_API_URL}/folders?page=1&name=${query}&username=${(folder.user as User).username}`);
             let data = await response.data;
             data = data.filter((value) => value.id != folder.id)
             setFolders(data);
