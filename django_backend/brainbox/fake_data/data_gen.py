@@ -69,7 +69,7 @@ def generate_user(num_entities: int, batch_size: int):
     print(len(created_dates))
     print(len(updated_dates))
 
-    with open('user_data.sql', 'r') as f:
+    with open('user_data.sql', 'w') as f:
         for index, user in enumerate(zip(usernames, emails, passwords, created_dates, updated_dates)):
             username, email, password, created_at, updated_at = user
             if index % batch_size == 0:
