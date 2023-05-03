@@ -19,22 +19,23 @@ import axios from "axios";
 import {BACKEND_API_URL} from "../../constants";
 import {Folder} from "../../models/Folder";
 import {FolderDelete} from "./FolderDelete";
-import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
-import NavigateNextIcon from "@mui/icons-material/NavigateNext";
+import {Paginator} from "../misc/Paginator";
 
 export const FolderList = () => {
     const [loading, setLoading] = useState(true);
     const [folders, setFolders] = useState([]);
     const [refreshFolders, setRefreshFolders] = useState(false);
     const [pageNumber, setPageNumber] = useState<number>(1);
-    const itemsPerPage = 25;
+    const [totalItems, setTotalItems] = useState<number>(0);
+    const itemsPerPage = 50;
 
     useEffect(() => {
         setLoading(true);
         setRefreshFolders(false);
-        axios.get(`${BACKEND_API_URL}/folders?page=${pageNumber}`)
+        axios.get(`${BACKEND_API_URL}/folders?per_page=${itemsPerPage}&page=${pageNumber}&agg=true`)
             .then((response) => {
-                setFolders(response.data);
+                setFolders(response.data.results);
+                setTotalItems(response.data.count);
                 setLoading(false);
             })
             .catch((error) => console.log(error));
@@ -93,14 +94,6 @@ export const FolderList = () => {
             setRefreshFolders(true);
     }
 
-    const handleOnPreviousPage = () => {
-        setPageNumber(pageNumber - 1);
-    };
-
-    const handleOnNextPage = () => {
-        setPageNumber(pageNumber + 1);
-    };
-
     return (
         <Container sx={{display: "flex", flexDirection: "column", alignItems: "center", mt: 3, mb: 3}}>
             <Typography variant={"h3"} align={"center"}>Folders</Typography>
@@ -132,6 +125,15 @@ export const FolderList = () => {
                                             Name
                                         </TableSortLabel>
                                     </TableCell>
+                                    <TableCell key={"num_files"} align={"right"}>
+                                        <TableSortLabel
+                                            active={orderColumn === "num_files"}
+                                            direction={orderColumn === "num_files" ? orderDirection : undefined}
+                                            onClick={() => handleSort("num_files")}
+                                        >
+                                            No. Files
+                                        </TableSortLabel>
+                                    </TableCell>
                                     <TableCell align="center">Operations</TableCell>
                                 </TableRow>
                             </TableHead>
@@ -140,6 +142,7 @@ export const FolderList = () => {
                                     <TableRow key={folder.id}>
                                         <TableCell>{folder.index}</TableCell>
                                         <TableCell>{folder.name}</TableCell>
+                                        <TableCell align={"right"}>{folder.num_files}</TableCell>
                                         <TableCell align="center" sx={{pl: 5}}>
                                             <IconButton component={Link} sx={{ mr: 3 }} to={`/folder/${folder.id}/details`}>
                                                 <Tooltip title="View folder details" arrow>
@@ -164,14 +167,13 @@ export const FolderList = () => {
                             </TableBody>
                         </Table>
                     </TableContainer>
-                    <Box sx={{mt: 2, gap: 1}}>
-                        <IconButton disabled={pageNumber == 1} onClick={handleOnPreviousPage}>
-                            <NavigateBeforeIcon color={"primary"} fontSize={"large"}/>
-                        </IconButton>
-                        <IconButton onClick={handleOnNextPage}>
-                            <NavigateNextIcon color={"primary"} fontSize={"large"}/>
-                        </IconButton>
-                    </Box>
+                    <Paginator
+                        sx={{mt: 2, gap: 1}}
+                        itemsPerPage={itemsPerPage}
+                        totalItems={totalItems}
+                        currentPage={pageNumber}
+                        paginate={(number) => setPageNumber(number)}
+                    />
                     <FolderDelete open={openDeleteDialog} folderId={folderId} onClose={handleOnClose}/>
                 </>
             )}

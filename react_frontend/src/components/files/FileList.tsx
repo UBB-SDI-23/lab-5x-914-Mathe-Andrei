@@ -20,22 +20,23 @@ import EditIcon from "@mui/icons-material/Edit"
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever"
 import axios from "axios";
 import {FileDelete} from "./FileDelete";
-import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
-import NavigateNextIcon from "@mui/icons-material/NavigateNext";
+import {Paginator} from "../misc/Paginator";
 
 export const FileList = () => {
     const [loading, setLoading] = useState(true);
     const [files, setFiles] = useState([]);
     const [refreshFiles, setRefreshFiles] = useState(false);
     const [pageNumber, setPageNumber] = useState<number>(1);
-    const itemsPerPage = 25;
+    const [totalItems, setTotalItems] = useState<number>(0);
+    const itemsPerPage = 50;
 
     useEffect(() => {
         setLoading(true);
         setRefreshFiles(false);
-        axios.get(`${BACKEND_API_URL}/files?page=${pageNumber}`)
+        axios.get(`${BACKEND_API_URL}/files?per_page=${itemsPerPage}&page=${pageNumber}&agg=true`)
             .then((response) => {
-                setFiles(response.data);
+                setFiles(response.data.results);
+                setTotalItems(response.data.count);
                 setLoading(false);
             })
             .catch((error) => console.log(error));
@@ -94,14 +95,6 @@ export const FileList = () => {
             setRefreshFiles(true);
     }
 
-    const handleOnPreviousPage = () => {
-        setPageNumber(pageNumber - 1);
-    };
-
-    const handleOnNextPage = () => {
-        setPageNumber(pageNumber + 1);
-    };
-
     return (
         <Container sx={{display: "flex", flexDirection: "column", alignItems: "center", mt: 3, mb: 3}}>
             <Typography variant={"h3"} align={"center"}>Files</Typography>
@@ -133,6 +126,15 @@ export const FileList = () => {
                                             Name
                                         </TableSortLabel>
                                     </TableCell>
+                                    <TableCell key={"num_shared_users"} align={"right"}>
+                                        <TableSortLabel
+                                            active={orderColumn === "num_shared_users"}
+                                            direction={orderColumn === "num_shared_users" ? orderDirection : undefined}
+                                            onClick={() => handleSort("num_shared_users")}
+                                        >
+                                            No. Shared Users
+                                        </TableSortLabel>
+                                    </TableCell>
                                     <TableCell align="center">Operations</TableCell>
                                 </TableRow>
                             </TableHead>
@@ -141,6 +143,7 @@ export const FileList = () => {
                                     <TableRow key={file.id}>
                                         <TableCell>{file.index}</TableCell>
                                         <TableCell>{file.name}</TableCell>
+                                        <TableCell align={"right"}>{file.num_shared_users}</TableCell>
                                         <TableCell align="center" sx={{pl: 5}}>
                                             <IconButton component={Link} sx={{ mr: 3 }} to={`/file/${file.id}/details`}>
                                                 <Tooltip title="View file details" arrow>
@@ -165,14 +168,13 @@ export const FileList = () => {
                             </TableBody>
                         </Table>
                     </TableContainer>
-                    <Box sx={{mt: 2, gap: 1}}>
-                        <IconButton disabled={pageNumber == 1} onClick={handleOnPreviousPage}>
-                            <NavigateBeforeIcon color={"primary"} fontSize={"large"}/>
-                        </IconButton>
-                        <IconButton onClick={handleOnNextPage}>
-                            <NavigateNextIcon color={"primary"} fontSize={"large"}/>
-                        </IconButton>
-                    </Box>
+                    <Paginator
+                        sx={{mt: 2, gap: 1}}
+                        itemsPerPage={itemsPerPage}
+                        totalItems={totalItems}
+                        currentPage={pageNumber}
+                        paginate={(number) => setPageNumber(number)}
+                    />
                     <FileDelete open={openDeleteDialog} fileId={fileId} onClose={handleOnClose}/>
                 </>
             )}

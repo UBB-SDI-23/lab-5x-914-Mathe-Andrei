@@ -81,7 +81,7 @@ class TestFoldersByFilesSharedUsers(TestCase):
         self.sharedfile2 = SharedFile.objects.create(user=self.user1, file=self.file3, permission='RW')
 
     def test_statistics(self):
-        url = reverse('folders-by-shared-files')
+        url = reverse('folders-by-shared-users')
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)

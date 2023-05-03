@@ -10,5 +10,6 @@ export interface User {
     updated_at: string;
     folders: Folder[];
     shared_files: SharedFile[];
+    num_personal_files?: number;
     written_chars?: number;
 }

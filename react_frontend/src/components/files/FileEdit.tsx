@@ -36,6 +36,9 @@ export const FileEdit = () => {
         updated_at: ""
     });
     const [selectedFolder, setSelectedFolder] = useState<null | Folder>(null);
+    const [errorName, setErrorName] = useState<string>("");
+    const [errorFolder, setErrorFolder] = useState<string>("");
+    const [errorContent, setErrorContent] = useState<string>("");
 
 
     useEffect(() => {
@@ -58,8 +61,12 @@ export const FileEdit = () => {
         try {
             await axios.patch(`${BACKEND_API_URL}/file/${id}/`, file);
             navigate(-1);
-        } catch (error) {
+        } catch (error: any) {
             console.log(error);
+            let data = error.response.data;
+            setErrorName(("name" in data) ? data.name : "");
+            setErrorFolder(("folder" in data) ? data.folder : "");
+            setErrorContent(("content" in data) ? data.content : "");
         }
     };
 
@@ -67,9 +74,9 @@ export const FileEdit = () => {
 
     const fetchFolders = async (query: string) => {
         try {
-            const response = await axios.get<Folder[]>(`${BACKEND_API_URL}/folders?page=1&name=${query}&username=${(file.user as User).username}`);
+            const response = await axios.get(`${BACKEND_API_URL}/folders?name=${query}&username=${(file.user as User).username}`);
             const data = await response.data;
-            setFolders(data);
+            setFolders(data.results);
         } catch (error) {
             console.log("Error fetching folders: ", error);
         }
@@ -104,6 +111,9 @@ export const FileEdit = () => {
                                 label={"name"}
                                 defaultValue={file.name}
                                 variant={"outlined"}
+                                error={errorName !== ""}
+                                helperText={errorName !== "" && errorName}
+                                required
                                 fullWidth
                                 sx={{mb: 2}}
                                 onChange={(event) => setFile({...file, name: event.target.value})}
@@ -116,8 +126,15 @@ export const FileEdit = () => {
                                 value={selectedFolder}
                                 getOptionLabel={(option) => `${option.name}`}
                                 renderInput={(params) => (
-                                    <TextField {...params} label={"folder"} variant={"outlined"}/>
+                                    <TextField
+                                        {...params}
+                                        label={"folder"}
+                                        variant={"outlined"}
+                                        error={errorFolder !== ""}
+                                        helperText={errorFolder !== "" && errorFolder}
+                                    />
                                 )}
+                                onMouseEnter={() => fetchFolders("")}
                                 onInputChange={(event, value, reason) => {
                                     if (reason === "input") {
                                         if (value === "")
@@ -139,6 +156,8 @@ export const FileEdit = () => {
                                 label={"content"}
                                 defaultValue={file.content}
                                 variant={"outlined"}
+                                error={errorContent !== ""}
+                                helperText={errorContent !== "" && errorContent}
                                 multiline
                                 minRows={4}
                                 fullWidth

@@ -1,8 +1,8 @@
 /django_backend/brainbox/migrations/0*
 /django_backend/brainbox/venv/
+__pycache__/
 *.sql
 *.sqlite3
-__pycache__/
 
 # Logs
 logs

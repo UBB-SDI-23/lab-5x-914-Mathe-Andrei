@@ -11,4 +11,5 @@ export interface File {
     created_at: string;
     updated_at: string;
     shared_users: SharedFile[];
+    num_shared_users: number;
 }

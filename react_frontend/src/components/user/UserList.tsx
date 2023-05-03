@@ -18,24 +18,25 @@ import AddIcon from "@mui/icons-material/Add";
 import ReadMoreIcon from "@mui/icons-material/ReadMore";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
-import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
-import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import axios from "axios";
 import {UserDelete} from "./UserDelete";
+import {Paginator} from "../misc/Paginator"
 
 export const UserList = () => {
     const [loading, setLoading] = useState(true);
     const [users, setUsers] = useState([]);
     const [refreshUsers, setRefreshUsers] = useState(false);
     const [pageNumber, setPageNumber] = useState<number>(1);
-    const itemsPerPage = 25;
+    const [totalItems, setTotalItems] = useState<number>(0);
+    const itemsPerPage = 50;
 
     useEffect(() => {
         setLoading(true);
         setRefreshUsers(false);
-        axios.get(`${BACKEND_API_URL}/users?page=${pageNumber}`)
+        axios.get(`${BACKEND_API_URL}/users?per_page=${itemsPerPage}&page=${pageNumber}&agg=true`)
             .then((response) => {
-                setUsers(response.data);
+                setUsers(response.data.results);
+                setTotalItems(response.data.count);
                 setLoading(false);
             })
             .catch((error) => console.log(error));
@@ -94,14 +95,6 @@ export const UserList = () => {
             setRefreshUsers(true);
     }
 
-    const handleOnPreviousPage = () => {
-        setPageNumber(pageNumber - 1);
-    };
-
-    const handleOnNextPage = () => {
-        setPageNumber(pageNumber + 1);
-    };
-
     return (
         <Container sx={{display: "flex", flexDirection: "column", alignItems: "center", mt: 3, mb: 3}}>
             <Typography variant={"h3"} align={"center"}>Users</Typography>
@@ -133,7 +126,7 @@ export const UserList = () => {
                                             Username
                                         </TableSortLabel>
                                     </TableCell>
-                                    <TableCell>
+                                    <TableCell key={"email"}>
                                         <TableSortLabel
                                             active={orderColumn === "email"}
                                             direction={orderColumn === "email" ? orderDirection : undefined}
@@ -142,13 +135,22 @@ export const UserList = () => {
                                             Email
                                         </TableSortLabel>
                                     </TableCell>
-                                    <TableCell>
+                                    <TableCell key={"password"}>
                                         <TableSortLabel
                                             active={orderColumn === "password"}
                                             direction={orderColumn === "password" ? orderDirection : undefined}
                                             onClick={() => handleSort("password")}
                                         >
                                             Password
+                                        </TableSortLabel>
+                                    </TableCell>
+                                    <TableCell key={"num_personal_files"} align={"right"}>
+                                        <TableSortLabel
+                                            active={orderColumn === "num_personal_files"}
+                                            direction={orderColumn === "num_personal_files" ? orderDirection : undefined}
+                                            onClick={() => handleSort("num_personal_files")}
+                                        >
+                                            No. Personal Files
                                         </TableSortLabel>
                                     </TableCell>
                                     <TableCell align="center">Operations</TableCell>
@@ -161,6 +163,7 @@ export const UserList = () => {
                                         <TableCell>{user.username}</TableCell>
                                         <TableCell>{user.email}</TableCell>
                                         <TableCell>{user.password}</TableCell>
+                                        <TableCell align={"right"}>{user.num_personal_files}</TableCell>
                                         <TableCell align="center" sx={{pl: 5}}>
                                             <IconButton component={Link} sx={{ mr: 3 }} to={`/user/${user.id}/details`}>
                                                 <Tooltip title="View user details" arrow>
@@ -185,14 +188,13 @@ export const UserList = () => {
                             </TableBody>
                         </Table>
                     </TableContainer>
-                    <Box sx={{mt: 2, gap: 1}}>
-                        <IconButton disabled={pageNumber == 1} onClick={handleOnPreviousPage}>
-                            <NavigateBeforeIcon color={"primary"} fontSize={"large"}/>
-                        </IconButton>
-                        <IconButton onClick={handleOnNextPage}>
-                            <NavigateNextIcon color={"primary"} fontSize={"large"}/>
-                        </IconButton>
-                    </Box>
+                    <Paginator
+                        sx={{mt: 2, gap: 1}}
+                        itemsPerPage={itemsPerPage}
+                        totalItems={totalItems}
+                        currentPage={pageNumber}
+                        paginate={(number) => setPageNumber(number)}
+                    />
                     <UserDelete open={openDeleteDialog} userId={userId} onClose={handleOnClose}/>
                 </>
             )}

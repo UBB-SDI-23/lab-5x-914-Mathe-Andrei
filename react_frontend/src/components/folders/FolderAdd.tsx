@@ -29,13 +29,20 @@ export const FolderAdd = () => {
         created_at: "",
         updated_at: ""
     });
+    const [errorName, setErrorName] = useState<string>("");
+    const [errorUser, setErrorUser] = useState<string>("");
+    const [errorParentFolder, setErrorParentFolder] = useState<string>("");
 
     const addFolder = async () => {
         try {
             await axios.post(`${BACKEND_API_URL}/folders/`, folder);
             navigate("/folders/");
-        } catch (error) {
+        } catch (error: any) {
             console.log(error);
+            let data = error.response.data;
+            setErrorName(("name" in data) ? data.name : "");
+            setErrorUser(("user" in data) ? data.user : "");
+            setErrorParentFolder(("parent_folder" in data) ? data.parent_folder : "");
         }
     };
 
@@ -47,9 +54,9 @@ export const FolderAdd = () => {
 
     const fetchUsers = async (query: string) => {
         try {
-            const response = await axios.get<User[]>(`${BACKEND_API_URL}/users?page=1&username=${query}`);
+            const response = await axios.get(`${BACKEND_API_URL}/users?username=${query}`);
             const data = await response.data;
-            setUsers(data);
+            setUsers(data.results);
         } catch (error) {
             console.log("Error fetching users: ", error);
         }
@@ -57,9 +64,9 @@ export const FolderAdd = () => {
 
     const fetchFolders = async (query: string) => {
         try {
-            const response = await axios.get<Folder[]>(`${BACKEND_API_URL}/folders?page=1&name=${query}&username=${selectedUser?.username}`);
+            const response = await axios.get(`${BACKEND_API_URL}/folders?name=${query}&username=${selectedUser?.username}`);
             const data = await response.data;
-            setFolders(data);
+            setFolders(data.results);
         } catch (error) {
             console.log("Error fetching folders: ", error);
         }
@@ -94,6 +101,9 @@ export const FolderAdd = () => {
                             id={"name"}
                             label={"name"}
                             variant={"outlined"}
+                            error={errorName !== ""}
+                            helperText={errorName !== "" && errorName}
+                            required
                             fullWidth
                             sx={{mb: 2}}
                             onChange={(event) => setFolder({...folder, name: event.target.value})}
@@ -105,8 +115,16 @@ export const FolderAdd = () => {
                             options={users}
                             value={selectedUser}
                             getOptionLabel={(option) => `${option.username} - ${option.email}`}
+
                             renderInput={(params) => (
-                                <TextField {...params} label={"user"} variant={"outlined"}/>
+                                <TextField
+                                    {...params}
+                                    label={"user"}
+                                    variant={"outlined"}
+                                    error={errorUser !== ""}
+                                    helperText={errorUser !== "" && errorUser}
+                                    required
+                                />
                             )}
                             onInputChange={(event, value, reason) => {
                                 if (reason === "input") {
@@ -124,8 +142,8 @@ export const FolderAdd = () => {
                                     setFolder({...folder, user: NaN});
                                     setDisableParentFolder(true);
                                 }
-                                setFolders([]);
                                 setSelectedParentFolder(null);
+                                setFolders([]);
                             }}
                         />
                         <Autocomplete
@@ -137,8 +155,15 @@ export const FolderAdd = () => {
                             value={selectedParentFolder}
                             getOptionLabel={(option) => `${option.name}`}
                             renderInput={(params) => (
-                                <TextField {...params} label={"parent folder"} variant={"outlined"}/>
+                                <TextField
+                                    {...params}
+                                    label={"parent folder"}
+                                    variant={"outlined"}
+                                    error={errorParentFolder !== ""}
+                                    helperText={errorParentFolder !== "" && errorParentFolder}
+                                />
                             )}
+                            onMouseEnter={() => fetchFolders("")}
                             onInputChange={(event, value, reason) => {
                                 if (reason === "input") {
                                     if (value === "")

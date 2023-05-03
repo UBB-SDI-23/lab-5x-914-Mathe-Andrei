@@ -39,11 +39,19 @@ export const AppMenu = () => {
                     </Button>
                     <Button
                         component={Link}
-                        to={"/statistics/users-by-chars-written"}
-                        variant={path.startsWith("/statistics/users-by-chars-written") ? "outlined" : "text"}
+                        to={"/statistics"}
+                        variant={path.startsWith("/statistics") ? "outlined" : "text"}
                         color={"inherit"}
                         sx={{ml: 3}}>
                         Statistics
+                    </Button>
+                    <Button
+                        component={Link}
+                        to={"/filters/users-by-created-date"}
+                        variant={path.startsWith("/filters/users-by-created-date") ? "outlined" : "text"}
+                        color={"inherit"}
+                        sx={{ml: 3}}>
+                        Filters
                     </Button>
                 </Toolbar>
             </AppBar>

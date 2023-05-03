@@ -33,13 +33,22 @@ export const FileAdd = () => {
         created_at: "",
         updated_at: ""
     });
+    const [errorName, setErrorName] = useState<string>("");
+    const [errorUser, setErrorUser] = useState<string>("");
+    const [errorFolder, setErrorFolder] = useState<string>("");
+    const [errorContent, setErrorContent] = useState<string>("");
 
     const addFile = async () => {
         try {
             await axios.post(`${BACKEND_API_URL}/files/`, file);
             navigate("/files/");
-        } catch (error) {
+        } catch (error: any) {
             console.log(error);
+            let data = error.response.data;
+            setErrorName(("name" in data) ? data.name : "");
+            setErrorUser(("user" in data) ? data.user : "");
+            setErrorFolder(("folder" in data) ? data.folder : "");
+            setErrorContent(("content" in data) ? data.content : "");
         }
     };
 
@@ -51,9 +60,9 @@ export const FileAdd = () => {
 
     const fetchUsers = async (query: string) => {
         try {
-            const response = await axios.get<User[]>(`${BACKEND_API_URL}/users?page=1&username=${query}`);
+            const response = await axios.get(`${BACKEND_API_URL}/users?username=${query}`);
             const data = await response.data;
-            setUsers(data);
+            setUsers(data.results);
         } catch (error) {
             console.log("Error fetching users: ", error);
         }
@@ -61,9 +70,9 @@ export const FileAdd = () => {
 
     const fetchFolders = async (query: string) => {
         try {
-            const response = await axios.get<Folder[]>(`${BACKEND_API_URL}/folders?page=1&name=${query}&username=${selectedUser?.username}`);
+            const response = await axios.get(`${BACKEND_API_URL}/folders?name=${query}&username=${selectedUser?.username}`);
             const data = await response.data;
-            setFolders(data);
+            setFolders(data.results);
         } catch (error) {
             console.log("Error fetching folders: ", error);
         }
@@ -98,6 +107,9 @@ export const FileAdd = () => {
                             id={"name"}
                             label={"name"}
                             variant={"outlined"}
+                            error={errorName !== ""}
+                            helperText={errorName !== "" && errorName}
+                            required
                             fullWidth
                             sx={{mb: 2}}
                             onChange={(event) => setFile({...file, name: event.target.value})}
@@ -110,7 +122,14 @@ export const FileAdd = () => {
                             value={selectedUser}
                             getOptionLabel={(option) => `${option.username} - ${option.email}`}
                             renderInput={(params) => (
-                                <TextField {...params} label={"user"} variant={"outlined"}/>
+                                <TextField
+                                    {...params}
+                                    label={"user"}
+                                    variant={"outlined"}
+                                    error={errorUser !== ""}
+                                    helperText={errorUser !== "" && errorUser}
+                                    required
+                                />
                             )}
                             onInputChange={(event, value, reason) => {
                                 if (reason === "input") {
@@ -128,8 +147,8 @@ export const FileAdd = () => {
                                     setFile({...file, user: NaN});
                                     setDisableFolder(true);
                                 }
-                                setFolders([]);
                                 setSelectedFolder(null);
+                                setFolders([]);
                             }}
                         />
                         <Autocomplete
@@ -141,8 +160,15 @@ export const FileAdd = () => {
                             value={selectedFolder}
                             getOptionLabel={(option) => `${option.name}`}
                             renderInput={(params) => (
-                                <TextField {...params} label={"folder"} variant={"outlined"}/>
+                                <TextField
+                                    {...params}
+                                    label={"folder"}
+                                    variant={"outlined"}
+                                    error={errorFolder !== ""}
+                                    helperText={errorFolder !== "" && errorFolder}
+                                />
                             )}
+                            onMouseEnter={() => fetchFolders("")}
                             onInputChange={(event, value, reason) => {
                                 if (reason === "input") {
                                     if (value === "")
@@ -163,6 +189,8 @@ export const FileAdd = () => {
                             id={"content"}
                             label={"content"}
                             variant={"outlined"}
+                            error={errorContent !== ""}
+                            helperText={errorContent !== "" && errorContent}
                             multiline
                             minRows={4}
                             fullWidth

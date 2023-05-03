@@ -34,6 +34,8 @@ export const FolderEdit = () => {
         updated_at: ""
     });
     const [selectedParentFolder, setSelectedParentFolder] = useState<null | Folder>(null);
+    const [errorName, setErrorName] = useState<string>("");
+    const [errorParentFolder, setErrorParentFolder] = useState<string>("");
 
     useEffect(() => {
         setLoading(true);
@@ -53,8 +55,11 @@ export const FolderEdit = () => {
         try {
             await axios.patch(`${BACKEND_API_URL}/folder/${id}/`, folder);
             navigate(-1);
-        } catch (error) {
+        } catch (error: any) {
             console.log(error);
+            let data = error.response.data;
+            setErrorName(("name" in data) ? data.name : "");
+            setErrorParentFolder(("parent_folder" in data) ? data.parent_folder : "");
         }
     };
 
@@ -62,9 +67,9 @@ export const FolderEdit = () => {
 
     const fetchFolders = async (query: string) => {
         try {
-            const response = await axios.get<Folder[]>(`${BACKEND_API_URL}/folders?page=1&name=${query}&username=${(folder.user as User).username}`);
+            const response = await axios.get(`${BACKEND_API_URL}/folders?name=${query}&username=${(folder.user as User).username}`);
             let data = await response.data;
-            data = data.filter((value) => value.id != folder.id)
+            data = data.results.filter((value: Folder) => value.id != folder.id)
             setFolders(data);
         } catch (error) {
             console.log("Error fetching folders: ", error);
@@ -100,6 +105,9 @@ export const FolderEdit = () => {
                                 label={"name"}
                                 defaultValue={folder.name}
                                 variant={"outlined"}
+                                error={errorName !== ""}
+                                helperText={errorName !== "" && errorName}
+                                required
                                 fullWidth
                                 sx={{mb: 2}}
                                 onChange={(event) => setFolder({...folder, name: event.target.value})}
@@ -112,8 +120,15 @@ export const FolderEdit = () => {
                                 value={selectedParentFolder}
                                 getOptionLabel={(option) => `${option.name}`}
                                 renderInput={(params) => (
-                                    <TextField {...params} label={"parent folder"} variant={"outlined"}/>
+                                    <TextField
+                                        {...params}
+                                        label={"parent folder"}
+                                        variant={"outlined"}
+                                        error={errorParentFolder !== ""}
+                                        helperText={errorParentFolder !== "" && errorParentFolder}
+                                    />
                                 )}
+                                onMouseEnter={() => fetchFolders("")}
                                 onInputChange={(event, value, reason) => {
                                     if (reason === "input") {
                                         if (value === "")

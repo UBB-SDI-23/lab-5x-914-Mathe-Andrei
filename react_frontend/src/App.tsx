@@ -16,6 +16,9 @@ import {FileList} from "./components/files/FileList";
 import {FileAdd} from "./components/files/FileAdd";
 import {FileEdit} from "./components/files/FileEdit";
 import {FileDetails} from "./components/files/FileDetails";
+import {StatisticsHome} from "./components/statistics/StatisticsHome";
+import {FoldersBySharedFiles} from "./components/statistics/FoldersBySharedFiles";
+import {FilterUsersByCreatedDate} from "./components/filters/FilterUsersByCreatedDate";
 
 function App() {
   return (
@@ -41,7 +44,11 @@ function App() {
                   <Route path="/file/:id/details" element={<FileDetails/>}/>
                   <Route path="/file/:id/edit" element={<FileEdit/>}/>
 
+                  <Route path="/statistics" element={<StatisticsHome/>}/>
                   <Route path="/statistics/users-by-chars-written" element={<UserByWrittenChars/>}/>
+                  <Route path="/statistics/folders-by-shared-users" element={<FoldersBySharedFiles/>}/>
+
+                  <Route path="/filters/users-by-created-date" element={<FilterUsersByCreatedDate/>}/>
               </Routes>
           </BrowserRouter>
       </>

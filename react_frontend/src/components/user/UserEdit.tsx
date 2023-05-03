@@ -26,6 +26,9 @@ export const UserEdit = () => {
         created_at: "",
         updated_at: ""
     });
+    const [errorUsername, setErrorUsername] = useState<string>("");
+    const [errorEmail, setErrorEmail] = useState<string>("");
+    const [errorPassword, setErrorPassword] = useState<string>("");
 
     useEffect(() => {
         setLoading(true);
@@ -42,8 +45,12 @@ export const UserEdit = () => {
         try {
             await axios.patch(`${BACKEND_API_URL}/user/${id}/`, user);
             navigate(-1);
-        } catch (error) {
+        } catch (error: any) {
             console.log(error);
+            let data = error.response.data;
+            setErrorUsername(("username" in data) ? data.username : "");
+            setErrorEmail(("email" in data) ? data.email : "");
+            setErrorPassword(("password" in data) ? data.password : "");
         }
     };
 
@@ -68,6 +75,8 @@ export const UserEdit = () => {
                                 label={"username"}
                                 defaultValue={user.username}
                                 variant={"outlined"}
+                                error={errorUsername !== ""}
+                                helperText={errorUsername !== "" && errorUsername}
                                 fullWidth
                                 sx={{mb: 2}}
                                 onChange={(event) => setUser({...user, username: event.target.value})}
@@ -77,6 +86,8 @@ export const UserEdit = () => {
                                 label={"email"}
                                 defaultValue={user.email}
                                 variant={"outlined"}
+                                error={errorEmail !== ""}
+                                helperText={errorEmail !== "" && errorEmail}
                                 fullWidth
                                 sx={{mb: 2}}
                                 onChange={(event) => setUser({...user, email: event.target.value})}
@@ -86,6 +97,8 @@ export const UserEdit = () => {
                                 label={"password"}
                                 defaultValue={user.password}
                                 variant={"outlined"}
+                                error={errorPassword !== ""}
+                                helperText={errorPassword !== "" && errorPassword}
                                 fullWidth
                                 sx={{mb: 2}}
                                 onChange={(event) => setUser({...user, password: event.target.value})}

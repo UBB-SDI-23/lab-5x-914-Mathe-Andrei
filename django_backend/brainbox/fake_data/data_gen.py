@@ -47,6 +47,8 @@ def generate_user_passwords(num_entities: int, passwords: list):
 
 
 def generate_user(num_entities: int, batch_size: int):
+    print("Generating users...")
+
     usernames = set()
     emails = set()
     passwords = list()
@@ -59,9 +61,6 @@ def generate_user(num_entities: int, batch_size: int):
     generate_user_emails(num_entities, emails)
     generate_user_passwords(num_entities, passwords)
     generate_date_times(num_entities, created_dates, updated_dates)
-
-    toc = time.perf_counter()
-    print(f"Generated users in {toc - tic:0.4f} seconds")
 
     print(len(usernames))
     print(len(emails))
@@ -77,7 +76,7 @@ def generate_user(num_entities: int, batch_size: int):
             f.write(f"('{username}', '{email}', '{password}', '{created_at}', '{updated_at}'){';' if (index + 1) % batch_size == 0 else ','}\n")
 
     toc = time.perf_counter()
-    print(f"Generated + Print users in {toc - tic:0.4f} seconds")
+    print(f"Generated users in {toc - tic:0.4f} seconds")
 
 
 # FOLDER
@@ -109,6 +108,8 @@ def generate_folder_parent_folder(num_entities: int, parent_folders: list, users
 
 
 def generate_folder(num_entities: int, batch_size: int, user_folders: dict):
+    print("Generating folders...")
+
     names = list()
     users = list()
     parent_folders = list()
@@ -121,9 +122,6 @@ def generate_folder(num_entities: int, batch_size: int, user_folders: dict):
     generate_folder_user(num_entities, users, user_folders)
     generate_folder_parent_folder(num_entities, parent_folders, users, user_folders)
     generate_date_times(num_entities, created_dates, updated_dates)
-
-    toc = time.perf_counter()
-    print(f"Generated folders in {toc - tic:0.4f} seconds")
 
     print(len(names))
     print(len(users))
@@ -139,7 +137,7 @@ def generate_folder(num_entities: int, batch_size: int, user_folders: dict):
             f.write(f"('{name}', {user + 1}, {'null' if parent_folder is None else parent_folder + 1}, '{created_at}', '{updated_at}'){';' if (index + 1) % batch_size == 0 else ','}\n")
 
     toc = time.perf_counter()
-    print(f"Generated + Print folders in {toc - tic:0.4f} seconds")
+    print(f"Generated folders in {toc - tic:0.4f} seconds")
 
 
 # FILE
@@ -176,6 +174,8 @@ def generate_file_folder(num_entities: int, folders: list, users: list, user_fol
 
 
 def generate_file(num_entities: int, batch_size: int, user_folders: dict, file_user: dict):
+    print("Generating files...")
+
     names = list()
     contents = list()
     users = list()
@@ -190,9 +190,6 @@ def generate_file(num_entities: int, batch_size: int, user_folders: dict, file_u
     generate_file_user(num_entities, users, file_user)
     generate_file_folder(num_entities, folders, users, user_folders)
     generate_date_times(num_entities, created_dates, updated_dates)
-
-    toc = time.perf_counter()
-    print(f"Generated files in {toc - tic:0.4f} seconds")
 
     print(len(names))
     print(len(contents))
@@ -209,44 +206,35 @@ def generate_file(num_entities: int, batch_size: int, user_folders: dict, file_u
             f.write(f"('{name}', '{content}', {user + 1}, {'null' if folder is None else folder + 1}, '{created_at}', '{updated_at}'){';' if (index + 1) % batch_size == 0 else ','}\n")
 
     toc = time.perf_counter()
-    print(f"Generated + Print files in {toc - tic:0.4f} seconds")
+    print(f"Generated files in {toc - tic:0.4f} seconds")
 
 
 def generate_shared_file(num_entities: int, num_relations_per_entity: int, batch_size: int, file_user: dict):
-    user_ids = list()
-    file_ids = list()
-    permissions = list()
-    pairs = set()
+    print("Generating shared files...")
+
+    shared_files = []
 
     tic = time.perf_counter()
 
-    for i in range(num_entities * num_relations_per_entity):
-        file_id = random.randint(0, num_entities - 1)
-        user_id = random.randint(0, num_entities - 1)
-        while user_id == file_user[file_id] or (file_id, user_id) in pairs:
-            user_id = random.randint(0, num_entities - 1)
-        permission = random.choice(['R', 'RW'])
-        file_ids.append(file_id)
-        user_ids.append(user_id)
-        permissions.append(permission)
-        pairs.add((file_id, user_id))
+    for file_id in range(num_entities):
+        user_ids = random.sample(range(num_entities), num_relations_per_entity)
+        for user_id in user_ids:
+            while user_id == file_user[file_id]:
+                user_id = random.randint(0, num_entities)
+            shared_files.append((file_id, user_id))
 
-    toc = time.perf_counter()
-    print(f"Generated shared files in {toc - tic:0.4f} seconds")
-
-    print(len(user_ids))
-    print(len(file_ids))
-    print(len(permissions))
+    print(len(shared_files))
 
     with open('shared_file_data.sql', 'w') as f:
-        for index, shared_file in enumerate(zip(user_ids, file_ids, permissions)):
-            user_id, file_id, permission = shared_file
+        for index, shared_file in enumerate(shared_files):
+            user_id, file_id = shared_file
+            permission = random.choice(['R', 'RW'])
             if index % batch_size == 0:
                 f.write(f"INSERT INTO brainbox_sharedfile (user_id, file_id, permission) VALUES\n")
             f.write(f"({user_id + 1}, {file_id + 1}, '{permission}'){';' if (index + 1) % batch_size == 0 else ','}\n")
 
     toc = time.perf_counter()
-    print(f"Generated + Print shared files in {toc - tic:0.4f} seconds")
+    print(f"Generated shared files in {toc - tic:0.4f} seconds")
 
 
 def main():
@@ -258,8 +246,8 @@ def main():
 
     tic = time.perf_counter()
 
-    generate_user(num_entities, batch_size)
-    print('\n')
+    #generate_user(num_entities, batch_size)
+    #print('\n')
     generate_folder(num_entities, batch_size, user_folders)
     print('\n')
     generate_file(num_entities, batch_size, user_folders, file_user)

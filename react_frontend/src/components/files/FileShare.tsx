@@ -33,12 +33,13 @@ export const FileShare = ({open, file, onClose}: Props) => {
         permission: "R"
     });
     const [users, setUsers] = useState<User[]>([]);
+    const [errorUser, setErrorUser] = useState<string>("");
 
     const fetchUsers = async (query: string) => {
         try {
-            const response = await axios.get<User[]>(`${BACKEND_API_URL}/users?page=1&username=${query}`);
+            const response = await axios.get(`${BACKEND_API_URL}/users?username=${query}`);
             let data = await response.data;
-            data = data.filter((value) => value.id != (file.user as User).id);
+            data = data.results.filter((value: User) => value.id != (file.user as User).id);
             setUsers(data);
         } catch (error) {
             console.log("Error fetching users: ", error);
@@ -56,8 +57,12 @@ export const FileShare = ({open, file, onClose}: Props) => {
     const handleShare = async (event: { preventDefault: () => void }) => {
         event.preventDefault();
         await axios.post(`${BACKEND_API_URL}/file/${file.id}/shared-users/`, sharedUser)
-            .catch((error) => console.log(error));
-        onClose(true);
+            .then(() => onClose(true))
+            .catch((error: any) => {
+                console.log(error);
+                let data = error.response.data;
+                setErrorUser(("user" in data) ? data.user : "");
+            });
     };
 
     const handleCancel = (event: {preventDefault: () => void}) => {
@@ -75,7 +80,14 @@ export const FileShare = ({open, file, onClose}: Props) => {
                     options={users}
                     getOptionLabel={(option) => `${option.username} - ${option.email}`}
                     renderInput={(params) => (
-                        <TextField {...params} label={"user"} variant={"outlined"}/>
+                        <TextField
+                            {...params}
+                            label={"user"}
+                            variant={"outlined"}
+                            error={errorUser !== ""}
+                            helperText={errorUser !== "" && errorUser}
+                            required
+                        />
                     )}
                     onInputChange={(event, value, reason) => {
                         if (reason === "input") {

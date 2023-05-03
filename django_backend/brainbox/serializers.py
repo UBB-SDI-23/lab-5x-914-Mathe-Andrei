@@ -28,12 +28,16 @@ class DynamicFieldsModelSerializer(serializers.ModelSerializer):
 
 
 class UserSerializerList(serializers.ModelSerializer):
+    num_personal_files = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password', 'created_at', 'updated_at']
+        fields = ['id', 'username', 'email', 'password', 'created_at', 'updated_at', 'num_personal_files']
 
 
 class FolderSerializerList(serializers.ModelSerializer):
+    num_files = serializers.IntegerField(read_only=True)
+
     def validate(self, data):
         errors = {}
         try:
@@ -53,10 +57,12 @@ class FolderSerializerList(serializers.ModelSerializer):
 
     class Meta:
         model = Folder
-        fields = ['id', 'name', 'user', 'parent_folder', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'user', 'parent_folder', 'created_at', 'updated_at', 'num_files']
 
 
 class FileSerializerList(serializers.ModelSerializer):
+    num_shared_users = serializers.IntegerField(read_only=True)
+
     def validate(self, data):
         errors = {}
         try:
@@ -76,7 +82,7 @@ class FileSerializerList(serializers.ModelSerializer):
 
     class Meta:
         model = File
-        fields = ['id', 'name', 'content', 'folder', 'user', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'content', 'folder', 'user', 'created_at', 'updated_at', 'num_shared_users']
 
 
 class SharedFileSerializer(DynamicFieldsModelSerializer):
@@ -144,12 +150,6 @@ class FileSerializerDetail(serializers.ModelSerializer):
     user = UserSerializerList(read_only=True)
     shared_users = SharedFileSerializer(many=True, read_only=True, source='sharedfile_set', exclude_fields=['file'])
 
-    # def to_representation(self, instance):
-    #     result = super().to_representation(instance)
-    #     if result['folder'] is not None:
-    #         result['folder'] = FolderSerializerList().to_representation(instance=instance.folder)
-    #     return result
-
     def validate_folder(self, folder):
         if folder is not None:
             user = self.instance.user
@@ -178,24 +178,24 @@ class FoldersByFilesSharedUsersSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'user', 'parent_folder', 'num_shared_users', 'created_at', 'updated_at']
 
 
-class FolderFilesSerializerList(serializers.ModelSerializer):
-    id = serializers.IntegerField()
-
-    def validate_id(self, file_id):
-        file = get_object_or_404(File, pk=file_id)
-        folder = self.context['folder']
-        if file.user != folder.user:
-            raise serializers.ValidationError('File and folder must be created by the same user.')
-        return file_id
-
-    def create(self, validated_data):
-        file_id = validated_data['id']
-        file = get_object_or_404(File, pk=file_id)
-        file.folder = validated_data['folder']
-        db = validated_data.get('using', None)
-        file.save(using=db)
-        return file
-
-    class Meta:
-        model = File
-        fields = ['id']
+# class FolderFilesSerializerList(serializers.ModelSerializer):
+#     id = serializers.IntegerField()
+#
+#     def validate_id(self, file_id):
+#         file = get_object_or_404(File, pk=file_id)
+#         folder = self.context['folder']
+#         if file.user != folder.user:
+#             raise serializers.ValidationError('File and folder must be created by the same user.')
+#         return file_id
+#
+#     def create(self, validated_data):
+#         file_id = validated_data['id']
+#         file = get_object_or_404(File, pk=file_id)
+#         file.folder = validated_data['folder']
+#         db = validated_data.get('using', None)
+#         file.save(using=db)
+#         return file
+#
+#     class Meta:
+#         model = File
+#         fields = ['id']

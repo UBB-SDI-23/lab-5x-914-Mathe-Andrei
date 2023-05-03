@@ -9,4 +9,6 @@ export interface Folder {
     created_at: string;
     updated_at: string;
     files: File[];
+    num_files?: number;
+    num_shared_users?: number;
 }

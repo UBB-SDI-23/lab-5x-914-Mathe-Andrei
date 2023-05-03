@@ -20,7 +20,7 @@ urlpatterns = [
     path('api/file/<int:file_id>/shared-user/<int:user_id>/', views.SharedFileEndpoint.as_view()),
 
     path('api/statistics/users-by-chars-written/', views.UsersByCharsWritten.as_view(), name='users-by-chars-written'),
-    path('api/statistics/folders-by-shared-files/', views.FoldersByFilesSharedUsers.as_view(), name='folders-by-shared-files'),
+    path('api/statistics/folders-by-shared-users/', views.FoldersByFilesSharedUsers.as_view(), name='folders-by-shared-users'),
 
-    path('api/folder/<int:pk>/files/', views.FolderFilesEndpoint.as_view()),
+    # path('api/folder/<int:pk>/files/', views.FolderFilesEndpoint.as_view()),
 ]

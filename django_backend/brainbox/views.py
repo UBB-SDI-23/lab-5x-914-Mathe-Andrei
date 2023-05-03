@@ -1,29 +1,45 @@
-from django.core.paginator import Paginator
-from django.db.models import Sum, Count
-from django.db.models.functions import Length
-from rest_framework import generics, mixins, views, status
+from django.db.models import Sum, Count, OuterRef, Subquery
+from django.db.models.functions import Length, Coalesce
+from rest_framework import generics, mixins, views, status, pagination
 from rest_framework.response import Response
 
 from brainbox.serializers import *
 
 
+class Pagination(pagination.PageNumberPagination):
+    page_size = 25
+    page_size_query_param = 'per_page'
+    page_query_param = 'page'
+
+
 class UsersEndpoint(generics.ListCreateAPIView):
     serializer_class = UserSerializerList
+    pagination_class = Pagination
 
     def get_queryset(self):
         queryset = User.objects.all()
 
-        page_number = self.request.query_params.get('page')
-
         username = self.request.query_params.get('username')
+        year = self.request.query_params.get('year')
+        agg = self.request.query_params.get('agg')
 
+        if agg:
+            queryset = User.objects.annotate(
+                num_personal_files=Coalesce(Subquery(
+                    File.objects.filter(user=OuterRef('pk')).values('user').annotate(count=Count('id')).values('count')
+                ), 0)
+            )
+
+        filters = {}
         if username:
-            queryset = User.objects.filter(username__icontains=username)
+            filters['username__icontains'] = username
+        if year:
+            filters['created_at__year__gte'] = year
 
-        if page_number:
-            paginator = Paginator(queryset, 25)
-            page_obj = paginator.get_page(page_number)
-            queryset = page_obj.object_list
+        if filters:
+            queryset = queryset.objects.filter(**filters)
+            if year:
+                queryset = queryset.order_by('created_at')
 
         return queryset
 
@@ -35,14 +51,22 @@ class UserEndpoint(generics.RetrieveUpdateDestroyAPIView):
 
 class FoldersEndpoint(generics.ListCreateAPIView):
     serializer_class = FolderSerializerList
+    pagination_class = Pagination
 
     def get_queryset(self):
         queryset = Folder.objects.all()
 
-        page_number = self.request.query_params.get('page')
-
         username = self.request.query_params.get('username')
         name = self.request.query_params.get('name')
+        agg = self.request.query_params.get('agg')
+
+        if agg:
+            queryset = Folder.objects.annotate(
+                num_files=Coalesce(Subquery(
+                    File.objects.filter(folder=OuterRef('pk')).values('folder').annotate(count=Count('id')).values(
+                        'count')
+                ), 0)
+            )
 
         filters = {}
         if username:
@@ -51,12 +75,7 @@ class FoldersEndpoint(generics.ListCreateAPIView):
             filters['name__icontains'] = name
 
         if filters:
-            queryset = Folder.objects.filter(**filters)
-
-        if page_number:
-            paginator = Paginator(queryset, 25)
-            page_obj = paginator.get_page(page_number)
-            queryset = page_obj.object_list
+            queryset = queryset.objects.filter(**filters)
 
         return queryset
 
@@ -76,16 +95,20 @@ class FolderEndpoint(generics.RetrieveUpdateDestroyAPIView):
 
 class FilesEndpoint(generics.ListCreateAPIView):
     serializer_class = FileSerializerList
+    pagination_class = Pagination
 
     def get_queryset(self):
         queryset = File.objects.all()
 
-        page_number = self.request.query_params.get('page')
+        agg = self.request.query_params.get('agg')
 
-        if page_number:
-            paginator = Paginator(queryset, 25)
-            page_obj = paginator.get_page(page_number)
-            queryset = page_obj.object_list
+        if agg:
+            queryset = File.objects.annotate(
+                num_shared_users=Coalesce(Subquery(
+                    SharedFile.objects.filter(file=OuterRef('pk')).values('file').annotate(count=Count('id')).values(
+                        'count')
+                ), 0)
+            )
 
         return queryset
 
@@ -152,34 +175,28 @@ class SharedFileEndpoint(mixins.UpdateModelMixin, mixins.DestroyModelMixin, gene
 
 class UsersByCharsWritten(generics.ListAPIView):
     serializer_class = UsersByCharsWrittenSerializer
+    pagination_class = Pagination
 
     def get_queryset(self):
         queryset = User.objects.annotate(written_chars=Sum(Length('personal_files__content'))).order_by('-written_chars')
-
-        page_number = self.request.query_params.get('page')
-
-        if page_number:
-            paginator = Paginator(queryset, 25)
-            page_obj = paginator.get_page(page_number)
-            queryset = page_obj.object_list
-
         return queryset
 
 
 class FoldersByFilesSharedUsers(generics.ListAPIView):
     serializer_class = FoldersByFilesSharedUsersSerializer
+    pagination_class = Pagination
 
     def get_queryset(self):
         queryset = Folder.objects.annotate(num_shared_users=Count('files__shared_users')).order_by('-num_shared_users')
         return queryset
 
 
-class FolderFilesEndpoint(views.APIView):
-    def post(self, request, pk):
-        serializer = FolderFilesSerializerList(data=request.data, many=True)
-        folder = get_object_or_404(Folder, id=pk)
-        serializer.context['folder'] = folder
-        if serializer.is_valid():
-            serializer.save(folder=folder, using='')
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+# class FolderFilesEndpoint(views.APIView):
+#     def post(self, request, pk):
+#         serializer = FolderFilesSerializerList(data=request.data, many=True)
+#         folder = get_object_or_404(Folder, id=pk)
+#         serializer.context['folder'] = folder
+#         if serializer.is_valid():
+#             serializer.save(folder=folder, using='')
+#             return Response(serializer.data, status=status.HTTP_201_CREATED)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
