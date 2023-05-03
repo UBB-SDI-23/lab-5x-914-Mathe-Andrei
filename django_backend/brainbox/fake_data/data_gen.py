@@ -212,26 +212,20 @@ def generate_file(num_entities: int, batch_size: int, user_folders: dict, file_u
 def generate_shared_file(num_entities: int, num_relations_per_entity: int, batch_size: int, file_user: dict):
     print("Generating shared files...")
 
-    shared_files = []
-
     tic = time.perf_counter()
 
-    for file_id in range(num_entities):
-        user_ids = random.sample(range(num_entities), num_relations_per_entity)
-        for user_id in user_ids:
-            while user_id == file_user[file_id]:
-                user_id = random.randint(0, num_entities)
-            shared_files.append((file_id, user_id))
-
-    print(len(shared_files))
-
     with open('shared_file_data.sql', 'w') as f:
-        for index, shared_file in enumerate(shared_files):
-            user_id, file_id = shared_file
-            permission = random.choice(['R', 'RW'])
-            if index % batch_size == 0:
-                f.write(f"INSERT INTO brainbox_sharedfile (user_id, file_id, permission) VALUES\n")
-            f.write(f"({user_id + 1}, {file_id + 1}, '{permission}'){';' if (index + 1) % batch_size == 0 else ','}\n")
+        index = 0
+        for file_id in range(num_entities):
+            user_ids = random.sample(range(num_entities), num_relations_per_entity)
+            for user_id in user_ids:
+                if file_id in file_user:
+                    while user_id == file_user[file_id]:
+                        user_id = random.randint(0, num_entities)
+                if index % batch_size == 0:
+                    f.write(f"INSERT INTO brainbox_sharedfile (user_id, file_id, permission) VALUES\n")
+                f.write(f"({user_id + 1}, {file_id + 1}, '{random.choice(['R', 'RW'])}'){';' if (index + 1) % batch_size == 0 else ','}\n")
+                index += 1
 
     toc = time.perf_counter()
     print(f"Generated shared files in {toc - tic:0.4f} seconds")
