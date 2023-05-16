@@ -10,7 +10,7 @@ import {
     Typography
 } from "@mui/material";
 import {Link, useNavigate, useParams} from "react-router-dom";
-import React, {useEffect, useState} from "react";
+import React, {useContext, useEffect, useState} from "react";
 import {File} from "../../models/File";
 import {AccountCircle, ArrowBack} from "@mui/icons-material";
 import EditIcon from "@mui/icons-material/Edit";
@@ -21,12 +21,18 @@ import {BACKEND_API_URL} from "../../constants";
 import {User} from "../../models/User";
 import {Folder} from "../../models/Folder";
 import {FileShare} from "./FileShare";
-import {Simulate} from "react-dom/test-utils";
-import error = Simulate.error;
+import {AuthContext} from "../../services/AuthProvider";
 
 export const FileDetails = () => {
     const {id} = useParams();
     const navigate = useNavigate();
+    const context = useContext(AuthContext);
+
+    useEffect(() => {
+        if (!context?.authenticated) {
+            navigate('/login', {replace: true});
+        }
+    }, [context?.authenticated]);
 
     const [loading, setLoading] = useState(true);
     const [file, setFile] = useState<File>();
@@ -40,7 +46,9 @@ export const FileDetails = () => {
                 setFile(response.data);
                 setLoading(false);
             })
-            .catch((error) => console.log(error));
+            .catch((error) => {
+                console.log(error);
+            });
     }, [refreshUser]);
 
     const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -68,7 +76,10 @@ export const FileDetails = () => {
 
     const deleteSharedUser = async (userId: number) => {
         await axios.delete(`${BACKEND_API_URL}/file/${file?.id}/shared-user/${userId}`)
-            .catch((error) => console.log(error))
+            .then((response) => console.log(response))
+            .catch((error) => {
+                console.log(error);
+            })
         setRefreshUser(true);
     };
 
@@ -98,7 +109,13 @@ export const FileDetails = () => {
                         </CardActions>
                         <CardContent>
                             <Typography paragraph={true} align={"left"}>Name: {file?.name}</Typography>
-                            <Typography paragraph={true} align={"left"}>User: {file?.user !== null ? (file?.user as User).username : null}</Typography>
+                            <Typography paragraph={true} align={"left"}>
+                                User:
+                                <span> </span>
+                                <Link to={`/user/${(file?.user as User).id}/details`}>
+                                    {file?.user !== null ? (file?.user as User).username : null}
+                                </Link>
+                            </Typography>
                             <Typography paragraph={true} align={"left"}>Folder: {file?.folder !== null ? (file?.folder as Folder).name : null}</Typography>
                             <Typography paragraph={true} align={"left"}>Content:</Typography>
                             <Paper elevation={1} sx={{p: 3, background: "#f4f4f4"}}>
@@ -107,7 +124,7 @@ export const FileDetails = () => {
                             <br/>
                             <Typography paragraph={true} align={"left"}>Created at: {file?.created_at}</Typography>
                             <Typography paragraph={true} align={"left"}>Updated at: {file?.updated_at}</Typography>
-                            <Typography paragraph={true} align={"left"}>Shared users:</Typography>
+                            <Typography paragraph={true} align={"left"} sx={{mb: 0}}>Shared users:</Typography>
                             <List>
                                 {file?.shared_users.map((shared_user) => (
                                     <Box key={(shared_user.user as User).id} display={"flex"}>

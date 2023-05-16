@@ -10,7 +10,7 @@ import {
     IconButton,
     TextField
 } from "@mui/material";
-import React, {useCallback, useEffect, useState} from "react";
+import React, {useCallback, useContext, useEffect, useState} from "react";
 import {ArrowBack} from "@mui/icons-material";
 import {useNavigate, useParams} from "react-router-dom";
 import { File } from "../../models/File";
@@ -19,10 +19,18 @@ import {BACKEND_API_URL} from "../../constants";
 import {Folder} from "../../models/Folder";
 import {User} from "../../models/User";
 import {debounce} from "lodash";
+import {AuthContext} from "../../services/AuthProvider";
 
 export const FileEdit = () => {
     const {id} = useParams();
     const navigate = useNavigate();
+    const context = useContext(AuthContext);
+
+    useEffect(() => {
+        if (!context?.authenticated) {
+            navigate('/login', {replace: true});
+        }
+    }, [context?.authenticated]);
 
     const [loading, setLoading] = useState(true);
     const [file, setFile] = useState<File>({
@@ -49,11 +57,20 @@ export const FileEdit = () => {
                 setSelectedFolder(response.data.folder);
                 setLoading(false);
             })
-            .catch((error) => console.log(error));
+            .catch((error) => {
+                console.log(error);
+            });
     }, []);
 
     const editFile = async (event: {preventDefault: () => void}) => {
         event.preventDefault();
+        if (file.name === "") {
+            setErrorName("Name cannot be blank!");
+            return;
+        } else {
+            setErrorName("");
+        }
+
         if (typeof file.user !== "number")
             file.user = file.user.id;
         if (typeof file.folder !== "number" && file.folder !== null)
@@ -74,15 +91,15 @@ export const FileEdit = () => {
 
     const fetchFolders = async (query: string) => {
         try {
-            const response = await axios.get(`${BACKEND_API_URL}/folders?name=${query}&username=${(file.user as User).username}`);
+            const response = await axios.get(`${BACKEND_API_URL}/folders?page_size=10&name=${query}&username=${(file.user as User).username}`);
             const data = await response.data;
             setFolders(data.results);
-        } catch (error) {
+        } catch (error: any) {
             console.log("Error fetching folders: ", error);
         }
     };
 
-    const debounceFetchFolders = useCallback(debounce(fetchFolders, 500), [file.user]);
+    const debounceFetchFolders = useCallback(debounce(fetchFolders, 250), [file.user]);
 
     useEffect(() => {
         return () => {

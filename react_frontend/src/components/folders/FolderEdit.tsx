@@ -10,7 +10,7 @@ import {
     IconButton,
     TextField
 } from "@mui/material";
-import React, {useCallback, useEffect, useState} from "react";
+import React, {useCallback, useContext, useEffect, useState} from "react";
 import {ArrowBack} from "@mui/icons-material";
 import {useNavigate, useParams} from "react-router-dom";
 import { Folder } from "../../models/Folder";
@@ -18,10 +18,18 @@ import axios from "axios";
 import {BACKEND_API_URL} from "../../constants";
 import {User} from "../../models/User";
 import {debounce} from "lodash";
+import {AuthContext} from "../../services/AuthProvider";
 
 export const FolderEdit = () => {
     const {id} = useParams();
     const navigate = useNavigate();
+    const context = useContext(AuthContext);
+
+    useEffect(() => {
+        if (!context?.authenticated) {
+            navigate('/login', {replace: true});
+        }
+    }, [context?.authenticated]);
 
     const [loading, setLoading] = useState(true);
     const [folder, setFolder] = useState<Folder>({
@@ -45,11 +53,20 @@ export const FolderEdit = () => {
                 setSelectedParentFolder(response.data.parent_folder);
                 setLoading(false);
             })
-            .catch((error) => console.log(error));
+            .catch((error) => {
+                console.log(error);
+            });
     }, []);
 
     const editFolder = async (event: {preventDefault: () => void}) => {
         event.preventDefault();
+        if (folder.name === "") {
+            setErrorName("Name cannot be blank!");
+            return;
+        } else {
+            setErrorName("");
+        }
+
         if (typeof folder.parent_folder !== "number" && folder.parent_folder !== null)
             folder.parent_folder = folder.parent_folder.id;
         try {
@@ -67,16 +84,16 @@ export const FolderEdit = () => {
 
     const fetchFolders = async (query: string) => {
         try {
-            const response = await axios.get(`${BACKEND_API_URL}/folders?name=${query}&username=${(folder.user as User).username}`);
+            const response = await axios.get(`${BACKEND_API_URL}/folders?page_size=10&name=${query}&username=${(folder.user as User).username}`);
             let data = await response.data;
             data = data.results.filter((value: Folder) => value.id != folder.id)
             setFolders(data);
-        } catch (error) {
+        } catch (error: any) {
             console.log("Error fetching folders: ", error);
         }
     };
 
-    const debounceFetchFolders = useCallback(debounce(fetchFolders, 500), [folder.id, folder.user]);
+    const debounceFetchFolders = useCallback(debounce(fetchFolders, 250), [folder.id, folder.user]);
 
     useEffect(() => {
         return () => {

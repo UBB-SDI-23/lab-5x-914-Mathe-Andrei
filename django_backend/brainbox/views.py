@@ -1,18 +1,62 @@
-from django.db.models import Sum, Count, OuterRef, Subquery
+from django.db.models import Sum, Count, OuterRef, Subquery, F
 from django.db.models.functions import Length, Coalesce
 from rest_framework import generics, mixins, views, status, pagination
+from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 
 from brainbox.serializers import *
 
 
 class Pagination(pagination.PageNumberPagination):
-    page_size = 25
-    page_size_query_param = 'per_page'
+    page_size_query_param = 'page_size'
     page_query_param = 'page'
 
+    def get_page_size(self, request):
+        if self.page_size_query_param:
+            try:
+                return int(request.query_params[self.page_size_query_param])
+            except KeyError:
+                pass
+        return request.user.profile.page_size
 
-class UsersEndpoint(generics.ListCreateAPIView):
+    def get_paginated_response(self, data):
+        return Response({
+            'count': self.page.paginator.count,
+            'page_size': self.get_page_size(self.request),
+            'next': self.get_next_link(),
+            'previous': self.get_previous_link(),
+            'results': data
+        })
+
+
+class RegisterEndpoint(generics.CreateAPIView):
+    serializer_class = UserSerializerList
+    authentication_classes = []
+    permission_classes = []
+
+
+class RegistrationConfirmView(views.APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request, code):
+        try:
+            registration_code = RegistrationCode.objects.get(code=code)
+        except RegistrationCode.DoesNotExist:
+            return Response({'detail': 'Invalid confirmation code.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = registration_code.user
+        if registration_code.expires_at < timezone.now():
+            user.delete()
+            return Response({'detail': 'Confirmation code has expired.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.is_active = True
+        user.save()
+        registration_code.delete()
+        return Response({'detail': 'Account activated.'}, status=status.HTTP_200_OK)
+
+
+class UsersEndpoint(generics.ListAPIView):
     serializer_class = UserSerializerList
     pagination_class = Pagination
 
@@ -37,7 +81,7 @@ class UsersEndpoint(generics.ListCreateAPIView):
             filters['created_at__year__gte'] = year
 
         if filters:
-            queryset = queryset.objects.filter(**filters)
+            queryset = queryset.filter(**filters)
             if year:
                 queryset = queryset.order_by('created_at')
 
@@ -66,7 +110,7 @@ class FoldersEndpoint(generics.ListCreateAPIView):
                     File.objects.filter(folder=OuterRef('pk')).values('folder').annotate(count=Count('id')).values(
                         'count')
                 ), 0)
-            )
+            ).annotate(username=F("user__username"))
 
         filters = {}
         if username:
@@ -75,7 +119,7 @@ class FoldersEndpoint(generics.ListCreateAPIView):
             filters['name__icontains'] = name
 
         if filters:
-            queryset = queryset.objects.filter(**filters)
+            queryset = Folder.objects.filter(**filters)
 
         return queryset
 
@@ -108,7 +152,7 @@ class FilesEndpoint(generics.ListCreateAPIView):
                     SharedFile.objects.filter(file=OuterRef('pk')).values('file').annotate(count=Count('id')).values(
                         'count')
                 ), 0)
-            )
+            ).annotate(username=F("user__username"))
 
         return queryset
 
@@ -191,12 +235,10 @@ class FoldersByFilesSharedUsers(generics.ListAPIView):
         return queryset
 
 
-# class FolderFilesEndpoint(views.APIView):
-#     def post(self, request, pk):
-#         serializer = FolderFilesSerializerList(data=request.data, many=True)
-#         folder = get_object_or_404(Folder, id=pk)
-#         serializer.context['folder'] = folder
-#         if serializer.is_valid():
-#             serializer.save(folder=folder, using='')
-#             return Response(serializer.data, status=status.HTTP_201_CREATED)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class FoldersByNumFiles(generics.ListAPIView):
+    serializer_class = FoldersByNumFilesSerializer
+    pagination_class = Pagination
+
+    def get_queryset(self):
+        queryset = Folder.objects.annotate(num_files=Count('files')).order_by('-num_files')
+        return queryset

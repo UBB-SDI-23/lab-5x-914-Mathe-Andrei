@@ -1,7 +1,7 @@
-import React, {useEffect, useState} from "react";
+import React, {useContext, useEffect, useState} from "react";
 import {User} from "../../models/User";
 import {BACKEND_API_URL} from "../../constants";
-import {Link} from "react-router-dom";
+import {Link, useNavigate} from "react-router-dom";
 import {
     TableContainer,
     Table,
@@ -14,32 +14,44 @@ import {
     Tooltip,
     Container, Typography, Box, TableSortLabel
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
 import ReadMoreIcon from "@mui/icons-material/ReadMore";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import axios from "axios";
 import {UserDelete} from "./UserDelete";
 import {Paginator} from "../misc/Paginator"
+import {AuthContext} from "../../services/AuthProvider";
 
 export const UserList = () => {
+    const navigate = useNavigate();
+    const context = useContext(AuthContext);
+
+    useEffect(() => {
+        if (!context?.authenticated) {
+            navigate('/login', {replace: true});
+        }
+    }, [context?.authenticated]);
+
     const [loading, setLoading] = useState(true);
     const [users, setUsers] = useState([]);
     const [refreshUsers, setRefreshUsers] = useState(false);
     const [pageNumber, setPageNumber] = useState<number>(1);
     const [totalItems, setTotalItems] = useState<number>(0);
-    const itemsPerPage = 50;
+    const [pageSize, setPageSize] = useState<number>(0);
 
     useEffect(() => {
         setLoading(true);
         setRefreshUsers(false);
-        axios.get(`${BACKEND_API_URL}/users?per_page=${itemsPerPage}&page=${pageNumber}&agg=true`)
+        axios.get(`${BACKEND_API_URL}/users?page=${pageNumber}&agg=true`)
             .then((response) => {
                 setUsers(response.data.results);
                 setTotalItems(response.data.count);
+                setPageSize(response.data.page_size);
                 setLoading(false);
             })
-            .catch((error) => console.log(error));
+            .catch((error) => {
+                console.log(error);
+            });
     }, [refreshUsers, pageNumber]);
 
     const [orderColumn, setOrderColumn] = useState("id");
@@ -65,7 +77,7 @@ export const UserList = () => {
     const sortedInfo = (column: string, direction: string) => {
         const info = users.map((user: User, index) => {
             return {
-                index: (pageNumber - 1) * itemsPerPage + index + 1,
+                index: (pageNumber - 1) * pageSize + index + 1,
                 ...user
             }
         });
@@ -105,11 +117,6 @@ export const UserList = () => {
             )}
             {!loading && (
                 <>
-                    <IconButton component={Link} to={`/users/add`}>
-                        <Tooltip title="Add user" arrow>
-                            <AddIcon color="primary" fontSize={"large"}/>
-                        </Tooltip>
-                    </IconButton>
                     <TableContainer>
                         <Table>
                             <TableHead>
@@ -135,15 +142,6 @@ export const UserList = () => {
                                             Email
                                         </TableSortLabel>
                                     </TableCell>
-                                    <TableCell key={"password"}>
-                                        <TableSortLabel
-                                            active={orderColumn === "password"}
-                                            direction={orderColumn === "password" ? orderDirection : undefined}
-                                            onClick={() => handleSort("password")}
-                                        >
-                                            Password
-                                        </TableSortLabel>
-                                    </TableCell>
                                     <TableCell key={"num_personal_files"} align={"right"}>
                                         <TableSortLabel
                                             active={orderColumn === "num_personal_files"}
@@ -162,7 +160,6 @@ export const UserList = () => {
                                         <TableCell>{user.index}</TableCell>
                                         <TableCell>{user.username}</TableCell>
                                         <TableCell>{user.email}</TableCell>
-                                        <TableCell>{user.password}</TableCell>
                                         <TableCell align={"right"}>{user.num_personal_files}</TableCell>
                                         <TableCell align="center" sx={{pl: 5}}>
                                             <IconButton component={Link} sx={{ mr: 3 }} to={`/user/${user.id}/details`}>
@@ -190,7 +187,7 @@ export const UserList = () => {
                     </TableContainer>
                     <Paginator
                         sx={{mt: 2, gap: 1}}
-                        itemsPerPage={itemsPerPage}
+                        pageSize={pageSize}
                         totalItems={totalItems}
                         currentPage={pageNumber}
                         paginate={(number) => setPageNumber(number)}

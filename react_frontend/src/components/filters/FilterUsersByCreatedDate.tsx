@@ -8,31 +8,44 @@ import {
     Typography
 } from "@mui/material";
 import {Paginator} from "../misc/Paginator";
-import React, {useEffect, useState} from "react";
+import React, {useContext, useEffect, useState} from "react";
 import axios from "axios";
 import {BACKEND_API_URL} from "../../constants";
 import {User} from "../../models/User";
+import {useNavigate} from "react-router-dom";
+import {AuthContext} from "../../services/AuthProvider";
 
 export const FilterUsersByCreatedDate = () => {
+    const navigate = useNavigate();
+    const context = useContext(AuthContext);
+
+    useEffect(() => {
+        if (!context?.authenticated) {
+            navigate('/login', {replace: true});
+        }
+    }, [context?.authenticated]);
+
     const [loading, setLoading] = useState(true);
     const [users, setUsers] = useState<User[]>([]);
     const [year, setYear] = useState<number>(1900);
     const [pageNumber, setPageNumber] = useState<number>(1);
     const [totalItems, setTotalItems] = useState<number>(0);
-    const itemsPerPage = 50;
+    const [pageSize, setPageSize] = useState<number>(0);
 
     useEffect(() => {
-        console.log("dsad")
         if (!isNaN(year)) {
             setLoading(true);
-            console.log(`${BACKEND_API_URL}/users?per_page=${itemsPerPage}&page=${pageNumber}&year=${Math.max(1900, year)}`);
-            axios.get(`${BACKEND_API_URL}/users?per_page=${itemsPerPage}&page=${pageNumber}&year=${Math.max(1900, year)}`)
+            console.log(`${BACKEND_API_URL}/users?page=${pageNumber}&year=${Math.max(1900, year)}`);
+            axios.get(`${BACKEND_API_URL}/users?page=${pageNumber}&year=${Math.max(1900, year)}`)
                 .then((response) => {
                     setUsers(response.data.results);
                     setTotalItems(response.data.count);
+                    setPageSize(response.data.page_size);
                     setLoading(false);
                 })
-                .catch((error) => console.log(error));
+                .catch((error) => {
+                    console.log(error);
+                });
         }
     }, [year, pageNumber]);
 
@@ -76,7 +89,7 @@ export const FilterUsersByCreatedDate = () => {
                             <TableBody>
                                 {users.map((user, index) => (
                                     <TableRow key={user.id}>
-                                        <TableCell>{(pageNumber - 1) * itemsPerPage + index + 1}</TableCell>
+                                        <TableCell>{(pageNumber - 1) * pageSize + index + 1}</TableCell>
                                         <TableCell>{user.username}</TableCell>
                                         <TableCell>{user.email}</TableCell>
                                         <TableCell>{user.password}</TableCell>
@@ -89,7 +102,7 @@ export const FilterUsersByCreatedDate = () => {
                     </TableContainer>
                     <Paginator
                         sx={{mt: 2, gap: 1}}
-                        itemsPerPage={itemsPerPage}
+                        pageSize={pageSize}
                         totalItems={totalItems}
                         currentPage={pageNumber}
                         paginate={(number) => setPageNumber(number)}
