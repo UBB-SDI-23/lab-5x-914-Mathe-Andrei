@@ -1,7 +1,9 @@
+import datetime
+
 from rest_framework import serializers
-from rest_framework.generics import get_object_or_404
 
 from brainbox.models import *
+from brainbox import validators
 
 
 class DynamicFieldsModelSerializer(serializers.ModelSerializer):
@@ -28,14 +30,41 @@ class DynamicFieldsModelSerializer(serializers.ModelSerializer):
 
 
 class UserSerializerList(serializers.ModelSerializer):
+    password = serializers.CharField(max_length=128, write_only=True)
     num_personal_files = serializers.IntegerField(read_only=True)
+
+    def validate_password(self, password):
+        validators.validate_password(password)
+        return password
+
+    def create(self, validated_data):
+        return User.objects.create_user(**validated_data)
 
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'password', 'created_at', 'updated_at', 'num_personal_files']
 
 
+class UserProfileSerializerDetail(serializers.ModelSerializer):
+    def validate_birthday(self, birthday):
+        if birthday is not None:
+            if birthday > datetime.datetime.now().date():
+                raise serializers.ValidationError('Birthday is invalid.')
+        return birthday
+
+    def validate_page_size(self, page_size):
+        if page_size is not None:
+            if page_size < 0:
+                raise serializers.ValidationError('Page size cannot be negative.')
+        return page_size
+
+    class Meta:
+        model = UserProfile
+        fields = ['id', 'bio', 'birthday', 'website', 'dark_mode', 'page_size']
+
+
 class FolderSerializerList(serializers.ModelSerializer):
+    username = serializers.CharField(max_length=50, read_only=True)
     num_files = serializers.IntegerField(read_only=True)
 
     def validate(self, data):
@@ -57,10 +86,11 @@ class FolderSerializerList(serializers.ModelSerializer):
 
     class Meta:
         model = Folder
-        fields = ['id', 'name', 'user', 'parent_folder', 'created_at', 'updated_at', 'num_files']
+        fields = ['id', 'name', 'user', 'parent_folder', 'created_at', 'updated_at', 'username', 'num_files']
 
 
 class FileSerializerList(serializers.ModelSerializer):
+    username = serializers.CharField(max_length=50, read_only=True)
     num_shared_users = serializers.IntegerField(read_only=True)
 
     def validate(self, data):
@@ -82,7 +112,7 @@ class FileSerializerList(serializers.ModelSerializer):
 
     class Meta:
         model = File
-        fields = ['id', 'name', 'content', 'folder', 'user', 'created_at', 'updated_at', 'num_shared_users']
+        fields = ['id', 'name', 'content', 'folder', 'user', 'created_at', 'updated_at', 'username', 'num_shared_users']
 
 
 class SharedFileSerializer(DynamicFieldsModelSerializer):
@@ -118,12 +148,23 @@ class SharedFileSerializer(DynamicFieldsModelSerializer):
 
 
 class UserSerializerDetail(serializers.ModelSerializer):
+    password = serializers.CharField(max_length=128, write_only=True)
+    profile = UserProfileSerializerDetail()
+    personal_files = FileSerializerList(many=True, read_only=True)
     folders = FolderSerializerList(many=True, read_only=True)
     shared_files = SharedFileSerializer(many=True, read_only=True, exclude_fields=['user'])
 
+    def update(self, user, validated_data):
+        if "profile" in validated_data:
+            profile_data = validated_data.pop('profile')
+            profile_serializer = UserProfileSerializerDetail(instance=self.instance.profile, data=profile_data, partial=True)
+            if profile_serializer.is_valid(raise_exception=True):
+                profile_serializer.save()
+        return User.objects.update_user(user, **validated_data)
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password', 'created_at', 'updated_at', 'folders', 'shared_files']
+        fields = ['id', 'username', 'email', 'password', 'created_at', 'updated_at', 'profile', 'personal_files', 'folders', 'shared_files']
 
 
 class FolderSerializerDetail(serializers.ModelSerializer):
@@ -167,7 +208,7 @@ class UsersByCharsWrittenSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password', 'written_chars', 'created_at', 'updated_at']
+        fields = ['id', 'username', 'email', 'written_chars', 'created_at', 'updated_at']
 
 
 class FoldersByFilesSharedUsersSerializer(serializers.ModelSerializer):
@@ -178,24 +219,9 @@ class FoldersByFilesSharedUsersSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'user', 'parent_folder', 'num_shared_users', 'created_at', 'updated_at']
 
 
-# class FolderFilesSerializerList(serializers.ModelSerializer):
-#     id = serializers.IntegerField()
-#
-#     def validate_id(self, file_id):
-#         file = get_object_or_404(File, pk=file_id)
-#         folder = self.context['folder']
-#         if file.user != folder.user:
-#             raise serializers.ValidationError('File and folder must be created by the same user.')
-#         return file_id
-#
-#     def create(self, validated_data):
-#         file_id = validated_data['id']
-#         file = get_object_or_404(File, pk=file_id)
-#         file.folder = validated_data['folder']
-#         db = validated_data.get('using', None)
-#         file.save(using=db)
-#         return file
-#
-#     class Meta:
-#         model = File
-#         fields = ['id']
+class FoldersByNumFilesSerializer(serializers.ModelSerializer):
+    num_files = serializers.IntegerField()
+
+    class Meta:
+        model = Folder
+        fields = ['id', 'name', 'user', 'parent_folder', 'num_files', 'created_at', 'updated_at']

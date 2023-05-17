@@ -11,13 +11,12 @@ import {
 } from "@mui/material";
 import axios from "axios";
 import {BACKEND_API_URL} from "../../constants";
-import React, {useCallback, useEffect, useState} from "react";
+import React, {useCallback, useContext, useEffect, useState} from "react";
 import {SharedFile} from "../../models/SharedFile";
 import {User} from "../../models/User";
 import {File} from "../../models/File";
 import {debounce} from "lodash";
-import {Simulate} from "react-dom/test-utils";
-import error = Simulate.error;
+import {AuthContext} from "../../services/AuthProvider";
 
 interface Props {
     open: boolean,
@@ -26,6 +25,8 @@ interface Props {
 }
 
 export const FileShare = ({open, file, onClose}: Props) => {
+    const context = useContext(AuthContext);
+
     const [sharedUser, setSharedUser] = useState<SharedFile>({
         id: NaN,
         user: NaN,
@@ -37,16 +38,16 @@ export const FileShare = ({open, file, onClose}: Props) => {
 
     const fetchUsers = async (query: string) => {
         try {
-            const response = await axios.get(`${BACKEND_API_URL}/users?username=${query}`);
+            const response = await axios.get(`${BACKEND_API_URL}/users?page_size=10&username=${query}`);
             let data = await response.data;
             data = data.results.filter((value: User) => value.id != (file.user as User).id);
             setUsers(data);
-        } catch (error) {
+        } catch (error: any) {
             console.log("Error fetching users: ", error);
         }
     };
 
-    const debounceFetchUsers = useCallback(debounce(fetchUsers, 500), []);
+    const debounceFetchUsers = useCallback(debounce(fetchUsers, 250), []);
 
     useEffect(() => {
         return () => {

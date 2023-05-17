@@ -10,7 +10,7 @@ import {
     Typography
 } from "@mui/material";
 import {Link, useNavigate, useParams} from "react-router-dom";
-import React, {useEffect, useState} from "react";
+import React, {useContext, useEffect, useState} from "react";
 import {Folder} from "../../models/Folder";
 import {ArrowBack} from "@mui/icons-material";
 import EditIcon from "@mui/icons-material/Edit";
@@ -20,10 +20,18 @@ import axios from "axios";
 import {BACKEND_API_URL} from "../../constants";
 import {User} from "../../models/User";
 import ArticleIcon from "@mui/icons-material/Article";
+import {AuthContext} from "../../services/AuthProvider";
 
 export const FolderDetails = () => {
     const {id} = useParams();
     const navigate = useNavigate();
+    const context = useContext(AuthContext);
+
+    useEffect(() => {
+        if (!context?.authenticated) {
+            navigate('/login', {replace: true});
+        }
+    }, [context?.authenticated]);
 
     const [loading, setLoading] = useState(true);
     const [folder, setFolder] = useState<Folder>();
@@ -35,7 +43,9 @@ export const FolderDetails = () => {
                 setFolder(response.data);
                 setLoading(false);
             })
-            .catch((error) => console.log(error));
+            .catch((error) => {
+                console.log(error);
+            });
     }, []);
 
     const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -59,7 +69,7 @@ export const FolderDetails = () => {
             )}
             {!loading && (
                 <>
-                    <Card>
+                    <Card sx={{width: "100%"}}>
                         <Typography variant={"h4"} align={"center"}>Folder Details</Typography>
                         <CardActions sx={{justifyContent: "space-between"}}>
                             <IconButton sx={{ mr: 3 }} onClick={() => navigate(-1)}>
@@ -76,11 +86,17 @@ export const FolderDetails = () => {
                         </CardActions>
                         <CardContent>
                             <Typography paragraph={true} align={"left"}>Name: {folder?.name}</Typography>
-                            <Typography paragraph={true} align={"left"}>User: {folder?.user !== null ? (folder?.user as User).username : null}</Typography>
+                            <Typography paragraph={true} align={"left"}>
+                                User:
+                                <span> </span>
+                                <Link to={`/user/${(folder?.user as User).id}/details`}>
+                                    {folder?.user !== null ? (folder?.user as User).username : null}
+                                </Link>
+                            </Typography>
                             <Typography paragraph={true} align={"left"}>Parent folder: {folder?.parent_folder !== null ? (folder?.parent_folder as Folder).name : null}</Typography>
                             <Typography paragraph={true} align={"left"}>Created at: {folder?.created_at}</Typography>
                             <Typography paragraph={true} align={"left"}>Updated at: {folder?.updated_at}</Typography>
-                            <Typography paragraph={true} align={"left"}>Files:</Typography>
+                            <Typography paragraph={true} align={"left"} sx={{mb: 0}}>Files:</Typography>
                             <List>
                                 {folder?.files?.map((file) => (
                                     <ListItemButton component={Link} key={file.id} sx={{ml: 3}} to={`/file/${file.id}/details`}>

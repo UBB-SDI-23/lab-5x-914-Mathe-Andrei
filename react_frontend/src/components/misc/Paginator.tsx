@@ -1,17 +1,16 @@
-import {Box, List, ListItem, ListItemButton, ListItemText} from "@mui/material";
-import {useEffect} from "react";
+import {Box, List, ListItem, ListItemButton, ListItemText, Typography} from "@mui/material";
 
 interface Props {
     sx: {};
-    itemsPerPage: number;
+    pageSize: number;
     totalItems: number;
     currentPage: number;
     paginate: (pageNumber: number) => void
 }
 
-export const Paginator = ({sx, itemsPerPage, totalItems, currentPage, paginate}: Props) => {
+export const Paginator = ({sx, pageSize, totalItems, currentPage, paginate}: Props) => {
     const pageNumbers = [];
-    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const totalPages = Math.ceil(totalItems / pageSize);
     const pageRange = 2;
 
     if (totalPages > 10) {
@@ -37,7 +36,7 @@ export const Paginator = ({sx, itemsPerPage, totalItems, currentPage, paginate}:
     }
 
     return (
-        <Box sx={sx}>
+        <Box sx={{...sx, width: "100%", display: "flex", justifyContent: "center", alignItems: "center"}}>
             <List sx={{display: "flex"}}>
                 {pageNumbers.map((pageNumber, index) => (
                     <ListItem key={index} sx={{p: 0}}>
@@ -52,6 +51,7 @@ export const Paginator = ({sx, itemsPerPage, totalItems, currentPage, paginate}:
                     </ListItem>
                 ))}
             </List>
+            <Typography>({pageSize} per page)</Typography>
         </Box>
     );
 };

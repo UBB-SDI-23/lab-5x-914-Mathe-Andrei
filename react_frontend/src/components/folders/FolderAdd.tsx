@@ -9,16 +9,24 @@ import {
     TextField
 } from "@mui/material";
 import {ArrowBack} from "@mui/icons-material";
-import React, {useCallback, useEffect, useState} from "react";
+import React, {useCallback, useContext, useEffect, useState} from "react";
 import {useNavigate} from "react-router-dom";
 import {Folder} from "../../models/Folder";
 import axios from "axios";
 import {BACKEND_API_URL} from "../../constants";
 import {User} from "../../models/User";
 import {debounce} from "lodash";
+import {AuthContext} from "../../services/AuthProvider";
 
 export const FolderAdd = () => {
     const navigate = useNavigate();
+    const context = useContext(AuthContext);
+
+    useEffect(() => {
+        if (!context?.authenticated) {
+            navigate('/login', {replace: true});
+        }
+    }, [context?.authenticated]);
 
     const [folder, setFolder] = useState<Folder>({
         id: NaN,
@@ -34,6 +42,13 @@ export const FolderAdd = () => {
     const [errorParentFolder, setErrorParentFolder] = useState<string>("");
 
     const addFolder = async () => {
+        if (folder.name === "") {
+            setErrorName("Name cannot be blank!");
+            return;
+        } else {
+            setErrorName("");
+        }
+
         try {
             await axios.post(`${BACKEND_API_URL}/folders/`, folder);
             navigate("/folders/");
@@ -48,32 +63,44 @@ export const FolderAdd = () => {
 
     const [users, setUsers] = useState<User[]>([]);
     const [folders, setFolders] = useState<Folder[]>([]);
-    const [disableParentFolder, setDisableParentFolder] = useState<boolean>(true);
+    const [disableParentFolder, setDisableParentFolder] = useState<boolean>(false);
     const [selectedUser, setSelectedUser] = useState<null | User>(null);
     const [selectedParentFolder, setSelectedParentFolder] = useState<null | Folder>(null);
 
+    useEffect(() => {
+        axios.get(`${BACKEND_API_URL}/user/${context?.userId}/`)
+            .then((response) => {
+                console.log(response);
+                setSelectedUser(response.data);
+                setFolder({...folder, user: context?.userId as number});
+            })
+            .catch((error) => {
+                console.log(error);
+            });
+    }, []);
+
     const fetchUsers = async (query: string) => {
         try {
-            const response = await axios.get(`${BACKEND_API_URL}/users?username=${query}`);
+            const response = await axios.get(`${BACKEND_API_URL}/users?page_size=10&username=${query}`);
             const data = await response.data;
             setUsers(data.results);
-        } catch (error) {
+        } catch (error: any) {
             console.log("Error fetching users: ", error);
         }
     };
 
     const fetchFolders = async (query: string) => {
         try {
-            const response = await axios.get(`${BACKEND_API_URL}/folders?name=${query}&username=${selectedUser?.username}`);
+            const response = await axios.get(`${BACKEND_API_URL}/folders?page_size=10&name=${query}&username=${selectedUser?.username}`);
             const data = await response.data;
             setFolders(data.results);
-        } catch (error) {
+        } catch (error: any) {
             console.log("Error fetching folders: ", error);
         }
     };
 
-    const debounceFetchUsers = useCallback(debounce(fetchUsers, 500), []);
-    const debounceFetchFolders = useCallback(debounce(fetchFolders, 500), [selectedUser]);
+    const debounceFetchUsers = useCallback(debounce(fetchUsers, 250), []);
+    const debounceFetchFolders = useCallback(debounce(fetchFolders, 250), [selectedUser]);
 
     useEffect(() => {
         return () => {
@@ -111,6 +138,7 @@ export const FolderAdd = () => {
                         <Autocomplete
                             id={"user"}
                             fullWidth
+                            disabled
                             sx={{mb: 2}}
                             options={users}
                             value={selectedUser}

@@ -3,6 +3,8 @@ import axios from "axios";
 import {BACKEND_API_URL} from "../../constants";
 import {Simulate} from "react-dom/test-utils";
 import error = Simulate.error;
+import {useContext} from "react";
+import {AuthContext} from "../../services/AuthProvider";
 
 interface Props {
     open: boolean,
@@ -11,10 +13,15 @@ interface Props {
 }
 
 export const FileDelete = ({open, fileId, onClose}: Props) => {
+    const context = useContext(AuthContext);
+
     const handleConfirm = async (event: { preventDefault: () => void }) => {
         event.preventDefault();
         await axios.delete(`${BACKEND_API_URL}/file/${fileId}/`)
-            .catch((error) => console.log(error));
+            .then((response) => console.log(response))
+            .catch((error) => {
+                console.log(error);
+            });
         onClose(true);
     };
 

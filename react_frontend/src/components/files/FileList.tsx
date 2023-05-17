@@ -1,7 +1,7 @@
-import React, {useEffect, useState} from "react";
+import React, {useContext, useEffect, useState} from "react";
 import {File} from "../../models/File";
 import {BACKEND_API_URL} from "../../constants";
-import {Link} from "react-router-dom";
+import {Link, useNavigate} from "react-router-dom";
 import {
     TableContainer,
     Table,
@@ -21,25 +21,38 @@ import DeleteForeverIcon from "@mui/icons-material/DeleteForever"
 import axios from "axios";
 import {FileDelete} from "./FileDelete";
 import {Paginator} from "../misc/Paginator";
+import {AuthContext} from "../../services/AuthProvider";
 
 export const FileList = () => {
+    const navigate = useNavigate();
+    const context = useContext(AuthContext);
+
+    useEffect(() => {
+        if (!context?.authenticated) {
+            navigate('/login', {replace: true});
+        }
+    }, [context?.authenticated]);
+
     const [loading, setLoading] = useState(true);
     const [files, setFiles] = useState([]);
     const [refreshFiles, setRefreshFiles] = useState(false);
     const [pageNumber, setPageNumber] = useState<number>(1);
     const [totalItems, setTotalItems] = useState<number>(0);
-    const itemsPerPage = 50;
+    const [pageSize, setPageSize] = useState<number>(0);
 
     useEffect(() => {
         setLoading(true);
         setRefreshFiles(false);
-        axios.get(`${BACKEND_API_URL}/files?per_page=${itemsPerPage}&page=${pageNumber}&agg=true`)
+        axios.get(`${BACKEND_API_URL}/files?page=${pageNumber}&agg=true`)
             .then((response) => {
                 setFiles(response.data.results);
                 setTotalItems(response.data.count);
+                setPageSize(response.data.page_size);
                 setLoading(false);
             })
-            .catch((error) => console.log(error));
+            .catch((error) => {
+                console.log(error);
+            });
     }, [refreshFiles, pageNumber]);
 
     const [orderColumn, setOrderColumn] = useState("id");
@@ -65,7 +78,7 @@ export const FileList = () => {
     const sortedInfo = (column: string, direction: string) => {
         const info = files.map((file: File, index) => {
             return {
-                index: (pageNumber - 1) * itemsPerPage + index + 1,
+                index: (pageNumber - 1) * pageSize + index + 1,
                 ...file
             }
         });
@@ -126,6 +139,15 @@ export const FileList = () => {
                                             Name
                                         </TableSortLabel>
                                     </TableCell>
+                                    <TableCell key={"user"}>
+                                        <TableSortLabel
+                                            active={orderColumn === "user"}
+                                            direction={orderColumn === "user" ? orderDirection : undefined}
+                                            onClick={() => handleSort("user")}
+                                        >
+                                            User
+                                        </TableSortLabel>
+                                    </TableCell>
                                     <TableCell key={"num_shared_users"} align={"right"}>
                                         <TableSortLabel
                                             active={orderColumn === "num_shared_users"}
@@ -143,6 +165,11 @@ export const FileList = () => {
                                     <TableRow key={file.id}>
                                         <TableCell>{file.index}</TableCell>
                                         <TableCell>{file.name}</TableCell>
+                                        <TableCell>
+                                            <Link to={`/user/${file.user}/details`}>
+                                                {file.username}
+                                            </Link>
+                                        </TableCell>
                                         <TableCell align={"right"}>{file.num_shared_users}</TableCell>
                                         <TableCell align="center" sx={{pl: 5}}>
                                             <IconButton component={Link} sx={{ mr: 3 }} to={`/file/${file.id}/details`}>
@@ -170,7 +197,7 @@ export const FileList = () => {
                     </TableContainer>
                     <Paginator
                         sx={{mt: 2, gap: 1}}
-                        itemsPerPage={itemsPerPage}
+                        pageSize={pageSize}
                         totalItems={totalItems}
                         currentPage={pageNumber}
                         paginate={(number) => setPageNumber(number)}

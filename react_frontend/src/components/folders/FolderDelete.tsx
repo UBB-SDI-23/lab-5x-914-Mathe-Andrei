@@ -1,6 +1,8 @@
 import {Button, Dialog, DialogActions, DialogTitle} from "@mui/material";
 import axios from "axios";
 import {BACKEND_API_URL} from "../../constants";
+import {useContext} from "react";
+import {AuthContext} from "../../services/AuthProvider";
 
 interface Props {
     open: boolean,
@@ -9,10 +11,15 @@ interface Props {
 }
 
 export const FolderDelete = ({open, folderId, onClose}: Props) => {
+    const context = useContext(AuthContext);
+
     const handleConfirm = async (event: {preventDefault: () => void}) => {
         event.preventDefault();
         await axios.delete(`${BACKEND_API_URL}/folder/${folderId}/`)
-            .catch((error) => console.log(error));
+            .then((response) => console.log(response))
+            .catch((error) => {
+                console.log(error);
+            });
         onClose(true);
     };
 

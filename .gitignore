@@ -3,6 +3,7 @@
 __pycache__/
 *.sql
 *.sqlite3
+.env
 
 # Logs
 logs
