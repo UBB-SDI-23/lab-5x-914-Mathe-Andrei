@@ -1,13 +1,16 @@
-from django.db.models import Sum, Count, OuterRef, Subquery, F
+from django.db.models import Sum, Count, OuterRef, Subquery
 from django.db.models.functions import Length, Coalesce
 from rest_framework import generics, mixins, views, status, pagination
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 
+from brainbox.permissions import *
+from brainbox.dbutils import *
 from brainbox.serializers import *
 
 
 class Pagination(pagination.PageNumberPagination):
+    page_size = 25
     page_size_query_param = 'page_size'
     page_query_param = 'page'
 
@@ -17,6 +20,8 @@ class Pagination(pagination.PageNumberPagination):
                 return int(request.query_params[self.page_size_query_param])
             except KeyError:
                 pass
+        if request.user.is_anonymous:
+            return self.page_size
         return request.user.profile.page_size
 
     def get_paginated_response(self, data):
@@ -60,6 +65,14 @@ class UsersEndpoint(generics.ListAPIView):
     serializer_class = UserSerializerList
     pagination_class = Pagination
 
+    def get_permissions(self):
+        permissions = [IsAuthenticatedOrReadOnly]
+
+        if self.request.method == "DELETE":
+            permissions += [IsAdmin]
+
+        return [permission() for permission in permissions]
+
     def get_queryset(self):
         queryset = User.objects.all()
 
@@ -87,15 +100,65 @@ class UsersEndpoint(generics.ListAPIView):
 
         return queryset
 
+    def delete(self, request, format=None):
+        instances = self.get_queryset()
+        instances.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class UserEndpoint(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializerDetail
 
+    def get_permissions(self):
+        user = self.request.user
+        permissions = [IsAuthenticatedOrReadOnly]
+
+        if user.is_authenticated:
+            if user.role == User.Roles.USER:
+                permissions += [IsOwnerOrReadOnly]
+            else:
+                if self.request.method in ["PUT", "PATCH", "DELETE"]:
+                    permissions += [HasHigherRoleOrIsOwnerPermission]
+
+        return [permission() for permission in permissions]
+
+
+class UserRoleEndpoint(generics.UpdateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserRoleSerializer
+    permission_classes = [IsAdmin]
+
+
+class UsersPageSizeEndpoint(views.APIView):
+    def put(self, request, format=None):
+        page_size = request.data.get('page_size', None)
+        if page_size is None:
+            return Response({'page_size': ['This field is required.']}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            page_size = int(page_size)
+            if page_size <= 0:
+                return Response({'page_size': ['Page size must be strictly positive.']}, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError:
+            return Response({'page_size': ['A valid integer is required.']}, status=status.HTTP_400_BAD_REQUEST)
+
+        instances = UserProfile.objects.all()
+        instances.update(page_size=page_size)
+        return Response({'detail': ['Updated successfully.']}, status=status.HTTP_200_OK)
+
 
 class FoldersEndpoint(generics.ListCreateAPIView):
     serializer_class = FolderSerializerList
     pagination_class = Pagination
+
+    def get_permissions(self):
+        permissions = [IsAuthenticatedOrReadOnly]
+
+        if self.request.method == "DELETE":
+            permissions += [IsAdmin]
+
+        return [permission() for permission in permissions]
 
     def get_queryset(self):
         queryset = Folder.objects.all()
@@ -110,7 +173,7 @@ class FoldersEndpoint(generics.ListCreateAPIView):
                     File.objects.filter(folder=OuterRef('pk')).values('folder').annotate(count=Count('id')).values(
                         'count')
                 ), 0)
-            ).annotate(username=F("user__username"))
+            )
 
         filters = {}
         if username:
@@ -123,10 +186,28 @@ class FoldersEndpoint(generics.ListCreateAPIView):
 
         return queryset
 
+    def delete(self, request, format=None):
+        instances = self.get_queryset()
+        instances.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class FolderEndpoint(generics.RetrieveUpdateDestroyAPIView):
     queryset = Folder.objects.all()
     serializer_class = FolderSerializerDetail
+
+    def get_permissions(self):
+        user = self.request.user
+        permissions = [IsAuthenticatedOrReadOnly]
+
+        if user.is_authenticated:
+            if user.role == User.Roles.USER:
+                permissions += [IsOwnerOrReadOnly]
+            else:
+                if self.request.method in ["PUT", "PATCH", "DELETE"]:
+                    permissions += [HasHigherRoleOrIsOwnerPermission]
+
+        return [permission() for permission in permissions]
 
     def get_serializer(self, *args, **kwargs):
         serializer_class = self.get_serializer_class()
@@ -141,6 +222,14 @@ class FilesEndpoint(generics.ListCreateAPIView):
     serializer_class = FileSerializerList
     pagination_class = Pagination
 
+    def get_permissions(self):
+        permissions = [IsAuthenticatedOrReadOnly]
+
+        if self.request.method == "DELETE":
+            permissions += [IsAdmin]
+
+        return [permission() for permission in permissions]
+
     def get_queryset(self):
         queryset = File.objects.all()
 
@@ -152,14 +241,32 @@ class FilesEndpoint(generics.ListCreateAPIView):
                     SharedFile.objects.filter(file=OuterRef('pk')).values('file').annotate(count=Count('id')).values(
                         'count')
                 ), 0)
-            ).annotate(username=F("user__username"))
+            )
 
         return queryset
+
+    def delete(self, request, format=None):
+        instances = self.get_queryset()
+        instances.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class FileEndpoint(generics.RetrieveUpdateDestroyAPIView):
     queryset = File.objects.all()
     serializer_class = FileSerializerDetail
+
+    def get_permissions(self):
+        user = self.request.user
+        permissions = [IsAuthenticatedOrReadOnly]
+
+        if user.is_authenticated:
+            if user.role == User.Roles.USER:
+                permissions += [IsOwnerOrReadOnly]
+            else:
+                if self.request.method in ["PUT", "PATCH", "DELETE"]:
+                    permissions = [HasHigherRoleOrIsOwnerPermission]
+
+        return [permission() for permission in permissions]
 
     def get_serializer(self, *args, **kwargs):
         serializer_class = self.get_serializer_class()
@@ -170,19 +277,33 @@ class FileEndpoint(generics.RetrieveUpdateDestroyAPIView):
         return serializer
 
 
-class UserSharedFilesEndpoint(views.APIView):
-    def post(self, request, pk):
-        serializer = SharedFileSerializer(data=request.data, exclude_fields=['user'])
-        serializer.fields['file'] = serializers.PrimaryKeyRelatedField(queryset=File.objects.all())
-        user = get_object_or_404(User, id=pk)
-        serializer.initial_data['user'] = user
-        if serializer.is_valid():
-            serializer.save(user=user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+# class UserSharedFilesEndpoint(views.APIView):
+#     def post(self, request, pk):
+#         serializer = SharedFileSerializer(data=request.data, exclude_fields=['user'])
+#         serializer.fields['file'] = serializers.PrimaryKeyRelatedField(queryset=File.objects.all())
+#         user = get_object_or_404(User, id=pk)
+#         serializer.initial_data['user'] = user
+#         if serializer.is_valid():
+#             serializer.save(user=user)
+#             return Response(serializer.data, status=status.HTTP_201_CREATED)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class FileSharedFilesEndpoint(views.APIView):
+    def check_permissions(self, request):
+        message = 'You do not have permission to perform this action.'
+        if not request.user or not request.user.is_authenticated:
+            self.permission_denied(request, message)
+
+        file = get_object_or_404(File, id=self.kwargs['pk'])
+        if request.user.role == User.Roles.USER:
+            if request.user != file.user:
+                self.permission_denied(request, message)
+
+        if request.user.role == User.Roles.MODERATOR:
+            if request.user != file.user and file.user.role != User.Roles.USER:
+                self.permission_denied(request, message)
+
     def post(self, request, pk):
         serializer = SharedFileSerializer(data=request.data, exclude_fields=['file'])
         serializer.fields['user'] = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
@@ -194,9 +315,31 @@ class FileSharedFilesEndpoint(views.APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class SharedFilesEndpoint(views.APIView):
+    permission_classes = [IsAdmin]
+
+    def delete(self, request, format=None):
+        instances = SharedFile.objects.all()
+        instances.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class SharedFileEndpoint(mixins.UpdateModelMixin, mixins.DestroyModelMixin, generics.GenericAPIView):
     queryset = SharedFile.objects.all()
     serializer_class = SharedFileSerializer
+
+    def check_object_permissions(self, request, obj):
+        message = 'You do not have permission to perform this action.'
+        if not request.user or not request.user.is_authenticated:
+            self.permission_denied(request, message)
+
+        if request.user.role == User.Roles.USER:
+            if request.user != obj.file.user:
+                self.permission_denied(request, message)
+
+        if request.user.role == User.Roles.MODERATOR:
+            if request.user != obj.user and obj.user.role != User.Roles.USER:
+                self.permission_denied(request, message)
 
     def get_serializer(self, *args, **kwargs):
         serializer_class = self.get_serializer_class()
@@ -208,6 +351,7 @@ class SharedFileEndpoint(mixins.UpdateModelMixin, mixins.DestroyModelMixin, gene
         user_id = self.kwargs['user_id']
         file_id = self.kwargs['file_id']
         shared_file = get_object_or_404(SharedFile, user=user_id, file_id=file_id)
+        self.check_object_permissions(self.request, shared_file)
         return shared_file
 
     def patch(self, request, *args, **kwargs):
@@ -220,6 +364,7 @@ class SharedFileEndpoint(mixins.UpdateModelMixin, mixins.DestroyModelMixin, gene
 class UsersByCharsWritten(generics.ListAPIView):
     serializer_class = UsersByCharsWrittenSerializer
     pagination_class = Pagination
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
         queryset = User.objects.annotate(written_chars=Sum(Length('personal_files__content'))).order_by('-written_chars')
@@ -229,6 +374,7 @@ class UsersByCharsWritten(generics.ListAPIView):
 class FoldersByFilesSharedUsers(generics.ListAPIView):
     serializer_class = FoldersByFilesSharedUsersSerializer
     pagination_class = Pagination
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
         queryset = Folder.objects.annotate(num_shared_users=Count('files__shared_users')).order_by('-num_shared_users')
@@ -238,7 +384,70 @@ class FoldersByFilesSharedUsers(generics.ListAPIView):
 class FoldersByNumFiles(generics.ListAPIView):
     serializer_class = FoldersByNumFilesSerializer
     pagination_class = Pagination
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
         queryset = Folder.objects.annotate(num_files=Count('files')).order_by('-num_files')
         return queryset
+
+
+class PopulateUsersEndpoint(views.APIView):
+    permission_classes = [IsAdmin]
+
+    def post(self, request, format=True):
+        if 'sqlite3' in os.getenv('DB_ENGINE'):
+            execute_sqlite('brainbox/fake_data/user_data.sql')
+            execute_sqlite('brainbox/fake_data/userprofile_data.sql')
+            return Response({'details': ['Done.']}, status=status.HTTP_200_OK)
+
+        if 'postgresql' in os.getenv('DB_ENGINE'):
+            execute_postgresql('brainbox/fake_data/user_data.sql')
+            execute_postgresql('brainbox/fake_data/userprofile_data.sql')
+            return Response({'details': ['Done.']}, status=status.HTTP_200_OK)
+
+        return Response({'details': ['An error has occurred.']}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class PopulateFoldersEndpoint(views.APIView):
+    permission_classes = [IsAdmin]
+
+    def post(self, request, format=True):
+        if 'sqlite3' in os.getenv('DB_ENGINE'):
+            execute_sqlite('brainbox/fake_data/folder_data.sql')
+            return Response({'details': ['Done.']}, status=status.HTTP_200_OK)
+
+        if 'postgresql' in os.getenv('DB_ENGINE'):
+            execute_postgresql('brainbox/fake_data/folder_data.sql')
+            return Response({'details': ['Done.']}, status=status.HTTP_200_OK)
+
+        return Response({'details': ['An error has occurred.']}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class PopulateFilesEndpoint(views.APIView):
+    permission_classes = [IsAdmin]
+
+    def post(self, request, format=True):
+        if 'sqlite3' in os.getenv('DB_ENGINE'):
+            execute_sqlite('brainbox/fake_data/file_data.sql')
+            return Response({'details': ['Done.']}, status=status.HTTP_200_OK)
+
+        if 'postgresql' in os.getenv('DB_ENGINE'):
+            execute_postgresql('brainbox/fake_data/file_data.sql')
+            return Response({'details': ['Done.']}, status=status.HTTP_200_OK)
+
+        return Response({'details': ['An error has occurred.']}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class PopulateSharedFilesEndpoint(views.APIView):
+    permission_classes = [IsAdmin]
+
+    def post(self, request, format=True):
+        if 'sqlite3' in os.getenv('DB_ENGINE'):
+            execute_sqlite('brainbox/fake_data/sharedfile_data.sql')
+            return Response({'details': ['Done.']}, status=status.HTTP_200_OK)
+
+        if 'postgresql' in os.getenv('DB_ENGINE'):
+            execute_postgresql('brainbox/fake_data/sharedfile_data.sql')
+            return Response({'details': ['Done.']}, status=status.HTTP_200_OK)
+
+        return Response({'details': ['An error has occurred.']}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

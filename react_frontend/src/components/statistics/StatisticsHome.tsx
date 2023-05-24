@@ -1,18 +1,7 @@
 import {Box, Container} from "@mui/material";
-import {Link, useNavigate} from "react-router-dom";
-import {useContext, useEffect} from "react";
-import {AuthContext} from "../../services/AuthProvider";
+import {Link} from "react-router-dom";
 
 export const StatisticsHome = () => {
-    const navigate = useNavigate();
-    const context = useContext(AuthContext);
-
-    useEffect(() => {
-        if (!context?.authenticated) {
-            navigate('/login', {replace: true});
-        }
-    }, [context?.authenticated]);
-
     return (
         <Container sx={{display: "flex", justifyContent: "center", gap: 3, mt: 3, mb: 3}}>
             <Box

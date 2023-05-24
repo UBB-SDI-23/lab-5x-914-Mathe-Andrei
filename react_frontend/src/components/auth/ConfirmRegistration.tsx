@@ -1,19 +1,11 @@
 import {Button, Card, CardActions, CardContent, Container, TextField} from "@mui/material";
-import React, {useContext, useEffect, useState} from "react";
+import React, {useState} from "react";
 import {useNavigate} from "react-router-dom";
-import {AuthContext, AuthContextType} from "../../services/AuthProvider";
 import axios from "axios";
 import {BACKEND_API_URL} from "../../constants";
 
 export const ConfirmRegistration = () => {
 	const navigate = useNavigate();
-	const context = useContext(AuthContext) as AuthContextType;
-
-	useEffect(() => {
-		if (context?.authenticated) {
-			navigate('/', {replace: true});
-		}
-	}, [context?.authenticated]);
 
 	const [code, setCode] = useState<string>("");
 	const [errorCode, setErrorCode] = useState<string>("");

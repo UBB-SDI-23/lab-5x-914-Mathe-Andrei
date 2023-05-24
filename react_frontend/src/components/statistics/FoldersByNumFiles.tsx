@@ -1,4 +1,4 @@
-import React, {useContext, useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
 import axios from "axios";
 import {BACKEND_API_URL} from "../../constants";
 import {
@@ -14,24 +14,13 @@ import {
 } from "@mui/material";
 import {Paginator} from "../misc/Paginator";
 import {Folder} from "../../models/Folder";
-import {useNavigate} from "react-router-dom";
-import {AuthContext} from "../../services/AuthProvider";
 
 export const FoldersByNumFiles = () => {
-    const navigate = useNavigate();
-    const context = useContext(AuthContext);
-
-    useEffect(() => {
-        if (!context?.authenticated) {
-            navigate('/login', {replace: true});
-        }
-    }, [context?.authenticated]);
-
     const [loading, setLoading] = useState(true);
     const [folders, setFolders] = useState<Folder[]>([]);
     const [pageNumber, setPageNumber] = useState<number>(1);
     const [totalItems, setTotalItems] = useState<number>(0);
-    const [pageSize, setPageSize] = useState<number>(0);
+    const [pageSize, setPageSize] = useState<number>(1);
 
     useEffect(() => {
         setLoading(true);

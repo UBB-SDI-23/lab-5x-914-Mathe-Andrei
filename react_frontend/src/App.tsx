@@ -23,6 +23,10 @@ import {Register} from "./components/auth/Register";
 import {ConfirmRegistration} from "./components/auth/ConfirmRegistration";
 import {AuthProvider} from "./services/AuthProvider";
 import {NotFound} from "./components/NotFound";
+import {Authorization} from "./services/Authorization";
+import {Roles} from "./models/Roles";
+import {Unauthorized} from "./components/Unauthorized";
+import {AdminDashboard} from "./components/admin/AdminDashboard";
 
 function App() {
 	return (
@@ -33,30 +37,45 @@ function App() {
 					<AppMenu/>
 					<Routes>
 						<Route path="/" element={<AppHome/>}/>
+						<Route path="/unauthorized" element={<Unauthorized/>}/>
 
-						<Route path="/login" element={<Login/>}/>
-						<Route path="/register" element={<Register/>}/>
-						<Route path="/register/confirm" element={<ConfirmRegistration/>}/>
+						<Route element={<Authorization allowedRoles={[Roles.GUEST]}/>}>
+							<Route path="/login" element={<Login/>}/>
+							<Route path="/register" element={<Register/>}/>
+							<Route path="/register/confirm" element={<ConfirmRegistration/>}/>
+						</Route>
 
-						<Route path="/users" element={<UserList/>}/>
-						<Route path="/user/:id/details" element={<UserDetails/>}/>
-						<Route path="/user/:id/edit" element={<UserEdit/>}/>
+						<Route element={<Authorization
+							allowedRoles={[Roles.GUEST, Roles.USER, Roles.MODERATOR, Roles.ADMIN]}/>}>
+							<Route path="/users" element={<UserList/>}/>
+							<Route path="/user/:id/details" element={<UserDetails/>}/>
 
-						<Route path="/folders" element={<FolderList/>}/>
-						<Route path="/folders/add" element={<FolderAdd/>}/>
-						<Route path="/folder/:id/details" element={<FolderDetails/>}/>
-						<Route path="/folder/:id/edit" element={<FolderEdit/>}/>
+							<Route path="/folders" element={<FolderList/>}/>
+							<Route path="/folder/:id/details" element={<FolderDetails/>}/>
 
-						<Route path="/files" element={<FileList/>}/>
-						<Route path="/files/add" element={<FileAdd/>}/>
-						<Route path="/file/:id/details" element={<FileDetails/>}/>
-						<Route path="/file/:id/edit" element={<FileEdit/>}/>
+							<Route path="/files" element={<FileList/>}/>
+							<Route path="/file/:id/details" element={<FileDetails/>}/>
 
-						<Route path="/statistics" element={<StatisticsHome/>}/>
-						<Route path="/statistics/users-by-chars-written" element={<UserByWrittenChars/>}/>
-						<Route path="/statistics/folders-by-num-files" element={<FoldersByNumFiles/>}/>
+							<Route path="/statistics" element={<StatisticsHome/>}/>
+							<Route path="/statistics/users-by-chars-written" element={<UserByWrittenChars/>}/>
+							<Route path="/statistics/folders-by-num-files" element={<FoldersByNumFiles/>}/>
 
-						<Route path="/filters/users-by-created-date" element={<FilterUsersByCreatedDate/>}/>
+							<Route path="/filters/users-by-created-date" element={<FilterUsersByCreatedDate/>}/>
+						</Route>
+
+						<Route element={<Authorization allowedRoles={[Roles.USER, Roles.MODERATOR, Roles.ADMIN]}/>}>
+							<Route path="/user/:id/edit" element={<UserEdit/>}/>
+
+							<Route path="/folders/add" element={<FolderAdd/>}/>
+							<Route path="/folder/:id/edit" element={<FolderEdit/>}/>
+
+							<Route path="/files/add" element={<FileAdd/>}/>
+							<Route path="/file/:id/edit" element={<FileEdit/>}/>
+						</Route>
+
+						<Route element={<Authorization allowedRoles={[Roles.ADMIN]}/>}>
+							<Route path="/dashboard" element={<AdminDashboard/>}/>
+						</Route>
 
 						<Route path="*" element={<NotFound/>}/>
 					</Routes>

@@ -11,7 +11,7 @@ import {
 	Typography
 } from "@mui/material";
 import {Link, useNavigate, useParams} from "react-router-dom";
-import React, {useContext, useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
 import {User} from "../../models/User";
 import axios from "axios";
 import {BACKEND_API_URL} from "../../constants";
@@ -22,18 +22,15 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import {UserDelete} from "./UserDelete";
 import {File} from "../../models/File";
-import {AuthContext, AuthContextType} from "../../services/AuthProvider";
+import {useAuthContext} from "../../services/useAuthContext";
+import { isAuthenticated } from "../../permissions/IsAuthenticated";
+import {isOwner} from "../../permissions/IsOwner";
+import {hasHigherRole} from "../../permissions/HasHigherRole";
 
 export const UserDetails = () => {
 	const {id} = useParams();
 	const navigate = useNavigate();
-	const context = useContext(AuthContext) as AuthContextType;
-
-	useEffect(() => {
-		if (!context?.authenticated) {
-			navigate('/login', {replace: true});
-		}
-	}, [context?.authenticated]);
+	const context = useAuthContext();
 
 	const [loading, setLoading] = useState(true);
 	const [user, setUser] = useState<User>();
@@ -47,6 +44,9 @@ export const UserDetails = () => {
 				setLoading(false);
 			})
 			.catch((error) => {
+				if (error.response && error.response.status === 404) {
+					navigate("/notfound");
+				}
 				console.log(error);
 			});
 	}, []);
@@ -59,8 +59,14 @@ export const UserDetails = () => {
 
 	const handleOnClose = (wasDeleted: boolean) => {
 		setOpenDeleteDialog(false);
-		if (wasDeleted)
+		if (wasDeleted) {
+			if (context.userId === user?.id) {
+				context.logout();
+				navigate("/login");
+				return;
+			}
 			navigate(-1);
+		}
 	};
 
 	// @ts-ignore
@@ -79,18 +85,21 @@ export const UserDetails = () => {
 							<IconButton sx={{mr: 3}} onClick={() => navigate(-1)}>
 								<ArrowBack/>
 							</IconButton>
-							<Box>
-								<IconButton component={Link} sx={{mr: 1}} to={`/user/${id}/edit`}>
-									<EditIcon/>
-								</IconButton>
-								<IconButton onClick={handleDelete}>
-									<DeleteForeverIcon sx={{color: "red"}}/>
-								</IconButton>
-							</Box>
+							{isAuthenticated(context) && (isOwner(context, user as User) || hasHigherRole(context, user as User)) && (
+								<Box>
+									<IconButton component={Link} sx={{mr: 1}} to={`/user/${id}/edit`}>
+										<EditIcon/>
+									</IconButton>
+									<IconButton onClick={handleDelete}>
+										<DeleteForeverIcon sx={{color: "red"}}/>
+									</IconButton>
+								</Box>
+							)}
 						</CardActions>
 						<CardContent>
 							<Typography paragraph={true} align={"left"}>Username: {user?.username}</Typography>
 							<Typography paragraph={true} align={"left"}>Email: {user?.email}</Typography>
+							<Typography paragraph={true} align={"left"}>Role: {user?.role}</Typography>
 							<Typography paragraph={true} align={"left"}>Bio:</Typography>
 							<Paper elevation={1} sx={{p: 3, background: "#f4f4f4"}}>
 								<Typography paragraph={true} sx={{

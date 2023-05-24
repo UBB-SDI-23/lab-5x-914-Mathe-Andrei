@@ -10,7 +10,7 @@ import {
     Typography
 } from "@mui/material";
 import {Link, useNavigate, useParams} from "react-router-dom";
-import React, {useContext, useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
 import {Folder} from "../../models/Folder";
 import {ArrowBack} from "@mui/icons-material";
 import EditIcon from "@mui/icons-material/Edit";
@@ -20,18 +20,15 @@ import axios from "axios";
 import {BACKEND_API_URL} from "../../constants";
 import {User} from "../../models/User";
 import ArticleIcon from "@mui/icons-material/Article";
-import {AuthContext} from "../../services/AuthProvider";
+import {useAuthContext} from "../../services/useAuthContext";
+import {isAuthenticated} from "../../permissions/IsAuthenticated";
+import {isOwner} from "../../permissions/IsOwner";
+import {hasHigherRole} from "../../permissions/HasHigherRole";
 
 export const FolderDetails = () => {
     const {id} = useParams();
     const navigate = useNavigate();
-    const context = useContext(AuthContext);
-
-    useEffect(() => {
-        if (!context?.authenticated) {
-            navigate('/login', {replace: true});
-        }
-    }, [context?.authenticated]);
+    const context = useAuthContext();
 
     const [loading, setLoading] = useState(true);
     const [folder, setFolder] = useState<Folder>();
@@ -44,6 +41,9 @@ export const FolderDetails = () => {
                 setLoading(false);
             })
             .catch((error) => {
+                if (error.response && error.response.status === 404) {
+                    navigate("/notfound");
+                }
                 console.log(error);
             });
     }, []);
@@ -75,14 +75,16 @@ export const FolderDetails = () => {
                             <IconButton sx={{ mr: 3 }} onClick={() => navigate(-1)}>
                                 <ArrowBack/>
                             </IconButton>
-                            <Box>
-                                <IconButton component={Link} sx={{mr: 1}} to={`/folder/${id}/edit`}>
-                                    <EditIcon/>
-                                </IconButton>
-                                <IconButton onClick={handleDelete}>
-                                    <DeleteForeverIcon sx={{color: "red"}}/>
-                                </IconButton>
-                            </Box>
+                            {isAuthenticated(context) && (isOwner(context, folder?.user as User) || hasHigherRole(context, folder?.user as User)) && (
+                                <Box>
+                                    <IconButton component={Link} sx={{mr: 1}} to={`/folder/${id}/edit`}>
+                                        <EditIcon/>
+                                    </IconButton>
+                                    <IconButton onClick={handleDelete}>
+                                        <DeleteForeverIcon sx={{color: "red"}}/>
+                                    </IconButton>
+                                </Box>
+                            )}
                         </CardActions>
                         <CardContent>
                             <Typography paragraph={true} align={"left"}>Name: {folder?.name}</Typography>

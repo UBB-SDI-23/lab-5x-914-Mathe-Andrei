@@ -11,8 +11,14 @@ from brainbox.managers import UserManager
 
 
 class User(AbstractBaseUser, PermissionsMixin):
+    class Roles(models.TextChoices):
+        USER = ('user', 'User')
+        MODERATOR = ('moderator', 'Moderator')
+        ADMIN = ('admin', 'Admin')
+
     username = models.CharField(max_length=50, unique=True)
     email = models.EmailField(unique=True)
+    role = models.CharField(max_length=50, choices=Roles.choices, default=Roles.USER)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
