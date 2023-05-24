@@ -2,6 +2,7 @@ import React, {useState} from "react";
 import axios, {AxiosResponse} from "axios";
 import jwt_decode from "jwt-decode";
 import {BACKEND_API_URL} from "../constants";
+import {Roles} from "../models/Roles";
 
 export type AuthContextType = {
 	authenticated: boolean;
@@ -9,6 +10,7 @@ export type AuthContextType = {
 	logout: () => void;
 	checkAuth: () => void;
 	userId: number;
+	userRole: string;
 }
 
 export const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
@@ -17,6 +19,7 @@ export const AuthProvider = ({children}: any) => {
 	const isAuth: boolean = checkAuth();
 
 	const [userId, setUserId] = useState<number>(isAuth ? (jwt_decode(localStorage.getItem("access_token") as string) as any).user_id : NaN);
+	const [userRole, setUserRole] = useState<string>(isAuth ? (jwt_decode(localStorage.getItem("access_token") as string) as any).user_role : "");
 	const [authenticated, setAuthenticated] = useState<boolean>(isAuth);
 
 	function login(response: AxiosResponse) {
@@ -27,6 +30,7 @@ export const AuthProvider = ({children}: any) => {
 		localStorage.setItem("refresh_token", response.data["refresh"]);
 
 		setUserId(accessTokenData.user_id);
+		setUserRole(accessTokenData.user_role);
 		setAuthenticated(true);
 	}
 
@@ -35,6 +39,7 @@ export const AuthProvider = ({children}: any) => {
 		localStorage.removeItem("refresh_token");
 
 		setUserId(NaN);
+		setUserRole(Roles.GUEST);
 		setAuthenticated(false);
 	}
 
@@ -89,12 +94,14 @@ export const AuthProvider = ({children}: any) => {
 			return config;
 		}
 
-		if (!checkAuth()) {
+		if (!checkAuth() && userRole !== Roles.GUEST) {
 			logout();
 			throw new Error("Login session expired!");
 		}
 
-		config.headers["Authorization"] = "Bearer " + localStorage.getItem("access_token");
+		if (userRole !== Roles.GUEST) {
+			config.headers["Authorization"] = "Bearer " + localStorage.getItem("access_token");
+		}
 
 		return config;
 	}, (error) => {
@@ -107,6 +114,7 @@ export const AuthProvider = ({children}: any) => {
 		logout: logout,
 		checkAuth: checkAuth,
 		userId: userId,
+		userRole: userRole
 	};
 
 	return (

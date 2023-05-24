@@ -11,12 +11,11 @@ import {
 } from "@mui/material";
 import axios from "axios";
 import {BACKEND_API_URL} from "../../constants";
-import React, {useCallback, useContext, useEffect, useState} from "react";
+import React, {useCallback, useEffect, useState} from "react";
 import {SharedFile} from "../../models/SharedFile";
 import {User} from "../../models/User";
 import {File} from "../../models/File";
 import {debounce} from "lodash";
-import {AuthContext} from "../../services/AuthProvider";
 
 interface Props {
     open: boolean,
@@ -25,8 +24,6 @@ interface Props {
 }
 
 export const FileShare = ({open, file, onClose}: Props) => {
-    const context = useContext(AuthContext);
-
     const [sharedUser, setSharedUser] = useState<SharedFile>({
         id: NaN,
         user: NaN,

@@ -12,25 +12,21 @@ import {
 	Switch,
 	TextField
 } from "@mui/material";
-import React, {useContext, useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
 import {useNavigate, useParams} from "react-router-dom";
 import {ArrowBack} from "@mui/icons-material";
 import {User} from "../../models/User"
 import {BACKEND_API_URL} from "../../constants";
 import axios from "axios";
-import {AuthContext} from "../../services/AuthProvider";
 import {validate_birthday, validate_email, validate_password, validate_url} from "../../validators/validators";
+import {useAuthContext} from "../../services/useAuthContext";
+import {isOwner} from "../../permissions/IsOwner";
+import {hasHigherRole} from "../../permissions/HasHigherRole";
 
 export const UserEdit = () => {
 	const {id} = useParams();
 	const navigate = useNavigate();
-	const context = useContext(AuthContext);
-
-	useEffect(() => {
-		if (!context?.authenticated) {
-			navigate('/login', {replace: true});
-		}
-	}, [context?.authenticated]);
+	const context = useAuthContext();
 
 	const [loading, setLoading] = useState(true);
 	const [user, setUser] = useState<User>({
@@ -38,6 +34,7 @@ export const UserEdit = () => {
 		username: "",
 		email: "",
 		password: "",
+		role: "",
 		personal_files: [],
 		folders: [],
 		shared_files: [],
@@ -63,10 +60,17 @@ export const UserEdit = () => {
 		setLoading(true);
 		axios.get(`${BACKEND_API_URL}/user/${id}/`)
 			.then((response) => {
+				if (!isOwner(context, response.data) && !hasHigherRole(context, response.data)) {
+					navigate("/unauthorized", {replace: true});
+					return;
+				}
 				setUser(response.data);
 				setLoading(false);
 			})
 			.catch((error) => {
+				if (error.response && error.response.status === 404) {
+					navigate("/notfound");
+				}
 				console.log(error);
 			});
 	}, []);
@@ -110,6 +114,16 @@ export const UserEdit = () => {
 			error = true;
 		} else {
 			setErrorWebsite("");
+		}
+
+		if (isNaN(user.profile.page_size)) {
+			setErrorPageSize("Page size cannot be blank!");
+			error = true;
+		} else if (user.profile.page_size <= 0) {
+			setErrorPageSize("Page size must be strictly positive!")
+			error = true;
+		} else {
+			setErrorPageSize("");
 		}
 
 		if (error) {

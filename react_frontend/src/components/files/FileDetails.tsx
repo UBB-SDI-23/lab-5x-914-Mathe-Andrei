@@ -10,7 +10,7 @@ import {
     Typography
 } from "@mui/material";
 import {Link, useNavigate, useParams} from "react-router-dom";
-import React, {useContext, useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
 import {File} from "../../models/File";
 import {AccountCircle, ArrowBack} from "@mui/icons-material";
 import EditIcon from "@mui/icons-material/Edit";
@@ -21,18 +21,15 @@ import {BACKEND_API_URL} from "../../constants";
 import {User} from "../../models/User";
 import {Folder} from "../../models/Folder";
 import {FileShare} from "./FileShare";
-import {AuthContext} from "../../services/AuthProvider";
+import {useAuthContext} from "../../services/useAuthContext";
+import {isAuthenticated} from "../../permissions/IsAuthenticated";
+import {isOwner} from "../../permissions/IsOwner";
+import {hasHigherRole} from "../../permissions/HasHigherRole";
 
 export const FileDetails = () => {
     const {id} = useParams();
     const navigate = useNavigate();
-    const context = useContext(AuthContext);
-
-    useEffect(() => {
-        if (!context?.authenticated) {
-            navigate('/login', {replace: true});
-        }
-    }, [context?.authenticated]);
+    const context = useAuthContext();
 
     const [loading, setLoading] = useState(true);
     const [file, setFile] = useState<File>();
@@ -47,6 +44,9 @@ export const FileDetails = () => {
                 setLoading(false);
             })
             .catch((error) => {
+                if (error.response && error.response.status === 404) {
+                    navigate("/notfound");
+                }
                 console.log(error);
             });
     }, [refreshUser]);
@@ -98,14 +98,16 @@ export const FileDetails = () => {
                             <IconButton sx={{ mr: 3 }} onClick={() => navigate(-1)}>
                                 <ArrowBack/>
                             </IconButton>
-                            <Box>
-                                <IconButton component={Link} sx={{mr: 1}} to={`/file/${id}/edit`}>
-                                    <EditIcon/>
-                                </IconButton>
-                                <IconButton onClick={handleDelete}>
-                                    <DeleteForeverIcon sx={{color: "red"}}/>
-                                </IconButton>
-                            </Box>
+                            {isAuthenticated(context) && (isOwner(context, file?.user as User) || hasHigherRole(context, file?.user as User)) && (
+                                <Box>
+                                    <IconButton component={Link} sx={{mr: 1}} to={`/file/${id}/edit`}>
+                                        <EditIcon/>
+                                    </IconButton>
+                                    <IconButton onClick={handleDelete}>
+                                        <DeleteForeverIcon sx={{color: "red"}}/>
+                                    </IconButton>
+                                </Box>
+                            )}
                         </CardActions>
                         <CardContent>
                             <Typography paragraph={true} align={"left"}>Name: {file?.name}</Typography>
@@ -136,18 +138,22 @@ export const FileDetails = () => {
                                                 primary={(shared_user.user as User).username}
                                             />
                                         </ListItemButton>
-                                        <IconButton sx={{borderRadius: 0}} onClick={(event) => {
-                                            deleteSharedUser((shared_user.user as User).id);
-                                        }}>
-                                            <DeleteForeverIcon sx={{color: "red"}}/>
-                                        </IconButton>
+                                        {isAuthenticated(context) && (isOwner(context, file?.user as User) || hasHigherRole(context, file?.user as User)) && (
+                                            <IconButton sx={{borderRadius: 0}} onClick={(event) => {
+                                                deleteSharedUser((shared_user.user as User).id);
+                                            }}>
+                                                <DeleteForeverIcon sx={{color: "red"}}/>
+                                            </IconButton>
+                                        )}
                                     </Box>
                                 ))}
                             </List>
                         </CardContent>
-                        <CardActions sx={{justifyContent: "flex-end"}}>
-                            <Button variant={"text"} onClick={handleShare}>Share</Button>
-                        </CardActions>
+                        {isAuthenticated(context) && (isOwner(context, file?.user as User) || hasHigherRole(context, file?.user as User)) && (
+                            <CardActions sx={{justifyContent: "flex-end"}}>
+                                <Button variant={"text"} onClick={handleShare}>Share</Button>
+                            </CardActions>
+                        )}
                     </Card>
                     <FileDelete open={openDeleteDialog} fileId={id} onClose={handleDeleteOnClose}/>
                     <FileShare open={openShareDialog} file={file as File} onClose={handleShareOnClose}/>

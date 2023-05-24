@@ -1,7 +1,7 @@
-import React, {useContext, useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
 import {File} from "../../models/File";
 import {BACKEND_API_URL} from "../../constants";
-import {Link, useNavigate} from "react-router-dom";
+import {Link} from "react-router-dom";
 import {
     TableContainer,
     Table,
@@ -21,24 +21,21 @@ import DeleteForeverIcon from "@mui/icons-material/DeleteForever"
 import axios from "axios";
 import {FileDelete} from "./FileDelete";
 import {Paginator} from "../misc/Paginator";
-import {AuthContext} from "../../services/AuthProvider";
+import {User} from "../../models/User";
+import {isAuthenticated} from "../../permissions/IsAuthenticated";
+import {isOwner} from "../../permissions/IsOwner";
+import {hasHigherRole} from "../../permissions/HasHigherRole";
+import {useAuthContext} from "../../services/useAuthContext";
 
 export const FileList = () => {
-    const navigate = useNavigate();
-    const context = useContext(AuthContext);
-
-    useEffect(() => {
-        if (!context?.authenticated) {
-            navigate('/login', {replace: true});
-        }
-    }, [context?.authenticated]);
+    const context = useAuthContext();
 
     const [loading, setLoading] = useState(true);
     const [files, setFiles] = useState([]);
     const [refreshFiles, setRefreshFiles] = useState(false);
     const [pageNumber, setPageNumber] = useState<number>(1);
     const [totalItems, setTotalItems] = useState<number>(0);
-    const [pageSize, setPageSize] = useState<number>(0);
+    const [pageSize, setPageSize] = useState<number>(1);
 
     useEffect(() => {
         setLoading(true);
@@ -52,6 +49,7 @@ export const FileList = () => {
             })
             .catch((error) => {
                 console.log(error);
+                setLoading(false);
             });
     }, [refreshFiles, pageNumber]);
 
@@ -118,11 +116,13 @@ export const FileList = () => {
             )}
             {!loading && (
                 <>
-                    <IconButton component={Link} to={`/files/add`}>
-                        <Tooltip title="Add file" arrow>
-                            <AddIcon color="primary" fontSize={"large"}/>
-                        </Tooltip>
-                    </IconButton>
+                    {isAuthenticated(context) && (
+                        <IconButton component={Link} to={`/files/add`}>
+                            <Tooltip title="Add file" arrow>
+                                <AddIcon color="primary" fontSize={"large"}/>
+                            </Tooltip>
+                        </IconButton>
+                    )}
                     <TableContainer>
                         <Table>
                             <TableHead>
@@ -166,8 +166,8 @@ export const FileList = () => {
                                         <TableCell>{file.index}</TableCell>
                                         <TableCell>{file.name}</TableCell>
                                         <TableCell>
-                                            <Link to={`/user/${file.user}/details`}>
-                                                {file.username}
+                                            <Link to={`/user/${(file.user as User).id}/details`}>
+                                                {(file.user as User).username}
                                             </Link>
                                         </TableCell>
                                         <TableCell align={"right"}>{file.num_shared_users}</TableCell>
@@ -178,17 +178,21 @@ export const FileList = () => {
                                                 </Tooltip>
                                             </IconButton>
 
-                                            <IconButton component={Link} sx={{ mr: 3 }} to={`/file/${file.id}/edit`}>
-                                                <Tooltip title="Edit file details" arrow>
-                                                    <EditIcon />
-                                                </Tooltip>
-                                            </IconButton>
+                                            {isAuthenticated(context) && (isOwner(context, (file.user as User)) || hasHigherRole(context, (file.user as User))) && (
+                                                <>
+                                                    <IconButton component={Link} sx={{ mr: 3 }} to={`/file/${file.id}/edit`}>
+                                                        <Tooltip title="Edit file details" arrow>
+                                                            <EditIcon />
+                                                        </Tooltip>
+                                                    </IconButton>
 
-                                            <IconButton onClick={() => handleDelete(file.id)} sx={{ mr: 3 }}>
-                                                <Tooltip title="Delete file" arrow>
-                                                    <DeleteForeverIcon sx={{ color: "red" }} />
-                                                </Tooltip>
-                                            </IconButton>
+                                                    <IconButton onClick={() => handleDelete(file.id)} sx={{ mr: 3 }}>
+                                                        <Tooltip title="Delete file" arrow>
+                                                            <DeleteForeverIcon sx={{ color: "red" }} />
+                                                        </Tooltip>
+                                                    </IconButton>
+                                                </>
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                 ))}

@@ -1,20 +1,14 @@
 import {Button, Card, CardActions, CardContent, Container, TextField} from "@mui/material";
-import React, {useContext, useEffect, useState} from "react";
+import React, {useState} from "react";
 import axios from "axios";
 import {BACKEND_API_URL} from "../../constants";
 import {useNavigate} from "react-router-dom";
-import {AuthContext, AuthContextType} from "../../services/AuthProvider";
-import {validate_birthday, validate_email, validate_password, validate_url} from "../../validators/validators";
+import {validate_email, validate_password} from "../../validators/validators";
+import {useAuthContext} from "../../services/useAuthContext";
 
 export const Login = () => {
 	const navigate = useNavigate();
-	const context = useContext(AuthContext) as AuthContextType;
-
-	useEffect(() => {
-		if (context?.authenticated) {
-			navigate('/', {replace: true});
-		}
-	}, [context?.authenticated]);
+	const context = useAuthContext();
 
 	const [email, setEmail] = useState<string>("");
 	const [password, setPassword] = useState<string>("");

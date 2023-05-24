@@ -9,8 +9,8 @@ import {
     Tooltip,
     Typography
 } from "@mui/material";
-import React, {useContext, useEffect, useState} from "react";
-import {Link, useNavigate} from "react-router-dom";
+import React, {useEffect, useState} from "react";
+import {Link} from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
 import ReadMoreIcon from "@mui/icons-material/ReadMore";
 import EditIcon from "@mui/icons-material/Edit";
@@ -20,24 +20,21 @@ import {BACKEND_API_URL} from "../../constants";
 import {Folder} from "../../models/Folder";
 import {FolderDelete} from "./FolderDelete";
 import {Paginator} from "../misc/Paginator";
-import {AuthContext} from "../../services/AuthProvider";
+import {isAuthenticated} from "../../permissions/IsAuthenticated";
+import {isOwner} from "../../permissions/IsOwner";
+import {hasHigherRole} from "../../permissions/HasHigherRole";
+import {useAuthContext} from "../../services/useAuthContext";
+import {User} from "../../models/User";
 
 export const FolderList = () => {
-    const navigate = useNavigate();
-    const context = useContext(AuthContext);
-
-    useEffect(() => {
-        if (!context?.authenticated) {
-            navigate('/login', {replace: true});
-        }
-    }, [context?.authenticated]);
+    const context = useAuthContext();
 
     const [loading, setLoading] = useState(true);
     const [folders, setFolders] = useState([]);
     const [refreshFolders, setRefreshFolders] = useState(false);
     const [pageNumber, setPageNumber] = useState<number>(1);
     const [totalItems, setTotalItems] = useState<number>(0);
-    const [pageSize, setPageSize] = useState<number>(0);
+    const [pageSize, setPageSize] = useState<number>(1);
 
     useEffect(() => {
         setLoading(true);
@@ -51,6 +48,7 @@ export const FolderList = () => {
             })
             .catch((error) => {
                 console.log(error);
+                setLoading(false);
             });
     }, [refreshFolders, pageNumber]);
 
@@ -117,11 +115,13 @@ export const FolderList = () => {
             )}
             {!loading && (
                 <>
-                    <IconButton component={Link} to={`/folders/add`}>
-                        <Tooltip title="Add folder" arrow>
-                            <AddIcon color="primary" fontSize={"large"}/>
-                        </Tooltip>
-                    </IconButton>
+                    {isAuthenticated(context) && (
+                        <IconButton component={Link} to={`/folders/add`}>
+                            <Tooltip title="Add folder" arrow>
+                                <AddIcon color="primary" fontSize={"large"}/>
+                            </Tooltip>
+                        </IconButton>
+                    )}
                     <TableContainer>
                         <Table>
                             <TableHead>
@@ -165,8 +165,8 @@ export const FolderList = () => {
                                         <TableCell>{folder.index}</TableCell>
                                         <TableCell>{folder.name}</TableCell>
                                         <TableCell>
-                                            <Link to={`/user/${folder.user}/details`}>
-                                                {folder.username}
+                                            <Link to={`/user/${(folder.user as User).id}/details`}>
+                                                {(folder.user as User).username}
                                             </Link>
                                         </TableCell>
                                         <TableCell align={"right"}>{folder.num_files}</TableCell>
@@ -177,17 +177,21 @@ export const FolderList = () => {
                                                 </Tooltip>
                                             </IconButton>
 
-                                            <IconButton component={Link} sx={{ mr: 3 }} to={`/folder/${folder.id}/edit`}>
-                                                <Tooltip title="Edit folder details" arrow>
-                                                    <EditIcon />
-                                                </Tooltip>
-                                            </IconButton>
+                                            {isAuthenticated(context) && (isOwner(context, (folder.user as User)) || hasHigherRole(context, (folder.user as User))) && (
+                                                <>
+                                                    <IconButton component={Link} sx={{ mr: 3 }} to={`/folder/${folder.id}/edit`}>
+                                                        <Tooltip title="Edit folder details" arrow>
+                                                            <EditIcon />
+                                                        </Tooltip>
+                                                    </IconButton>
 
-                                            <IconButton onClick={() => handleDelete(folder.id)} sx={{ mr: 3 }}>
-                                                <Tooltip title="Delete folder" arrow>
-                                                    <DeleteForeverIcon sx={{ color: "red" }} />
-                                                </Tooltip>
-                                            </IconButton>
+                                                    <IconButton onClick={() => handleDelete(folder.id)} sx={{ mr: 3 }}>
+                                                        <Tooltip title="Delete folder" arrow>
+                                                            <DeleteForeverIcon sx={{ color: "red" }} />
+                                                        </Tooltip>
+                                                    </IconButton>
+                                                </>
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                 ))}

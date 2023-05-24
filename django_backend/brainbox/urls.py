@@ -16,7 +16,9 @@ urlpatterns = [
 
     path('users/', views.UsersEndpoint.as_view()),
     path('user/<int:pk>/', views.UserEndpoint.as_view()),
-    path('user/<int:pk>/shared-files/', views.UserSharedFilesEndpoint.as_view()),
+    path('user/<int:pk>/role/', views.UserRoleEndpoint.as_view()),
+    path('users/page-size/', views.UsersPageSizeEndpoint.as_view()),
+    # path('user/<int:pk>/shared-files/', views.UserSharedFilesEndpoint.as_view()),
     path('user/<int:user_id>/shared-file/<int:file_id>/', views.SharedFileEndpoint.as_view()),
     path('folders/', views.FoldersEndpoint.as_view()),
     path('folder/<int:pk>/', views.FolderEndpoint.as_view()),
@@ -24,6 +26,12 @@ urlpatterns = [
     path('file/<int:pk>/', views.FileEndpoint.as_view()),
     path('file/<int:pk>/shared-users/', views.FileSharedFilesEndpoint.as_view()),
     path('file/<int:file_id>/shared-user/<int:user_id>/', views.SharedFileEndpoint.as_view()),
+    path('sharedfiles/', views.SharedFilesEndpoint.as_view()),
+
+    path('populate/users/', views.PopulateUsersEndpoint.as_view()),
+    path('populate/folders/', views.PopulateFoldersEndpoint.as_view()),
+    path('populate/files/', views.PopulateFilesEndpoint.as_view()),
+    path('populate/sharedfiles/', views.PopulateSharedFilesEndpoint.as_view()),
 
     path('statistics/users-by-chars-written/', views.UsersByCharsWritten.as_view(), name='users-by-chars-written'),
     path('statistics/folders-by-shared-users/', views.FoldersByFilesSharedUsers.as_view(), name='folders-by-shared-users'),

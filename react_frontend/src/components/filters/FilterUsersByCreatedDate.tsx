@@ -8,29 +8,18 @@ import {
     Typography
 } from "@mui/material";
 import {Paginator} from "../misc/Paginator";
-import React, {useContext, useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
 import axios from "axios";
 import {BACKEND_API_URL} from "../../constants";
 import {User} from "../../models/User";
-import {useNavigate} from "react-router-dom";
-import {AuthContext} from "../../services/AuthProvider";
 
 export const FilterUsersByCreatedDate = () => {
-    const navigate = useNavigate();
-    const context = useContext(AuthContext);
-
-    useEffect(() => {
-        if (!context?.authenticated) {
-            navigate('/login', {replace: true});
-        }
-    }, [context?.authenticated]);
-
     const [loading, setLoading] = useState(true);
     const [users, setUsers] = useState<User[]>([]);
     const [year, setYear] = useState<number>(1900);
     const [pageNumber, setPageNumber] = useState<number>(1);
     const [totalItems, setTotalItems] = useState<number>(0);
-    const [pageSize, setPageSize] = useState<number>(0);
+    const [pageSize, setPageSize] = useState<number>(1);
 
     useEffect(() => {
         if (!isNaN(year)) {

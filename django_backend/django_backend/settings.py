@@ -31,7 +31,7 @@ SECRET_KEY = 'django-insecure-q5jb22w_(ni+*3f9lyhl1p&9+0(e7*2bl9b7wn1f_oyxtd*73p
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['https://brainbox.homebrewer.org', '127.0.0.1']
 
 CORS_ORIGIN_WHITELIST = ['https://brainbox-app.netlify.app', 'http://127.0.0.1:5173']
 
@@ -142,14 +142,12 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
 }
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'TOKEN_OBTAIN_SERIALIZER': 'brainbox.serializers.CustomTokenObtainPairSerializer',
 }
 
 AUTH_USER_MODEL = 'brainbox.User'

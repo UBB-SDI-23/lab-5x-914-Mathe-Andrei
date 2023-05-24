@@ -1,20 +1,12 @@
 import {useNavigate} from "react-router-dom";
-import React, {useContext, useEffect, useState} from "react";
+import React, {useState} from "react";
 import axios from "axios";
 import {BACKEND_API_URL} from "../../constants";
 import {Button, Card, CardActions, CardContent, Container, TextField} from "@mui/material";
-import {AuthContext} from "../../services/AuthProvider";
 import {validate_email, validate_password} from "../../validators/validators";
 
 export const Register = () => {
 	const navigate = useNavigate();
-	const context = useContext(AuthContext);
-
-	useEffect(() => {
-		if (context?.authenticated) {
-			navigate('/', {replace: true});
-		}
-	}, [context?.authenticated]);
 
 	const [username, setUsername] = useState<string>("");
 	const [email, setEmail] = useState<string>("");

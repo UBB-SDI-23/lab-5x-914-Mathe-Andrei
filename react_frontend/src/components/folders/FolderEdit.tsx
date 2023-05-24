@@ -10,7 +10,7 @@ import {
     IconButton,
     TextField
 } from "@mui/material";
-import React, {useCallback, useContext, useEffect, useState} from "react";
+import React, {useCallback, useEffect, useState} from "react";
 import {ArrowBack} from "@mui/icons-material";
 import {useNavigate, useParams} from "react-router-dom";
 import { Folder } from "../../models/Folder";
@@ -18,18 +18,15 @@ import axios from "axios";
 import {BACKEND_API_URL} from "../../constants";
 import {User} from "../../models/User";
 import {debounce} from "lodash";
-import {AuthContext} from "../../services/AuthProvider";
+import {Roles} from "../../models/Roles";
+import {useAuthContext} from "../../services/useAuthContext";
+import {isOwner} from "../../permissions/IsOwner";
+import {hasHigherRole} from "../../permissions/HasHigherRole";
 
 export const FolderEdit = () => {
     const {id} = useParams();
     const navigate = useNavigate();
-    const context = useContext(AuthContext);
-
-    useEffect(() => {
-        if (!context?.authenticated) {
-            navigate('/login', {replace: true});
-        }
-    }, [context?.authenticated]);
+    const context = useAuthContext();
 
     const [loading, setLoading] = useState(true);
     const [folder, setFolder] = useState<Folder>({
@@ -49,11 +46,18 @@ export const FolderEdit = () => {
         setLoading(true);
         axios.get(`${BACKEND_API_URL}/folder/${id}/`)
             .then((response) => {
+                if (!isOwner(context, response.data.user) && !hasHigherRole(context, response.data.user)) {
+                    navigate("/unauthorized", {replace: true});
+                    return;
+                }
                 setFolder(response.data);
                 setSelectedParentFolder(response.data.parent_folder);
                 setLoading(false);
             })
             .catch((error) => {
+                if (error.response && error.response.status === 404) {
+                    navigate("/notfound");
+                }
                 console.log(error);
             });
     }, []);

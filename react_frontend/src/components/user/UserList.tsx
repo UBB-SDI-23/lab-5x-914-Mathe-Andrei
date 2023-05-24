@@ -1,4 +1,4 @@
-import React, {useContext, useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
 import {User} from "../../models/User";
 import {BACKEND_API_URL} from "../../constants";
 import {Link, useNavigate} from "react-router-dom";
@@ -20,24 +20,21 @@ import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import axios from "axios";
 import {UserDelete} from "./UserDelete";
 import {Paginator} from "../misc/Paginator"
-import {AuthContext} from "../../services/AuthProvider";
+import {isAuthenticated} from "../../permissions/IsAuthenticated";
+import {isOwner} from "../../permissions/IsOwner";
+import {hasHigherRole} from "../../permissions/HasHigherRole";
+import {useAuthContext} from "../../services/useAuthContext";
 
 export const UserList = () => {
     const navigate = useNavigate();
-    const context = useContext(AuthContext);
-
-    useEffect(() => {
-        if (!context?.authenticated) {
-            navigate('/login', {replace: true});
-        }
-    }, [context?.authenticated]);
+    const context =useAuthContext();
 
     const [loading, setLoading] = useState(true);
     const [users, setUsers] = useState([]);
     const [refreshUsers, setRefreshUsers] = useState(false);
     const [pageNumber, setPageNumber] = useState<number>(1);
     const [totalItems, setTotalItems] = useState<number>(0);
-    const [pageSize, setPageSize] = useState<number>(0);
+    const [pageSize, setPageSize] = useState<number>(1);
 
     useEffect(() => {
         setLoading(true);
@@ -103,8 +100,14 @@ export const UserList = () => {
 
     const handleOnClose = (wasDeleted: boolean) => {
         setOpenDeleteDialog(false);
-        if (wasDeleted)
+        if (wasDeleted) {
+            if (context.userId === userId) {
+                context.logout();
+                navigate("/login");
+                return;
+            }
             setRefreshUsers(true);
+        }
     }
 
     return (
@@ -142,6 +145,15 @@ export const UserList = () => {
                                             Email
                                         </TableSortLabel>
                                     </TableCell>
+                                    <TableCell key={"role"}>
+                                        <TableSortLabel
+                                            active={orderColumn === "role"}
+                                            direction={orderColumn === "role" ? orderDirection : undefined}
+                                            onClick={() => handleSort("role")}
+                                        >
+                                            Role
+                                        </TableSortLabel>
+                                    </TableCell>
                                     <TableCell key={"num_personal_files"} align={"right"}>
                                         <TableSortLabel
                                             active={orderColumn === "num_personal_files"}
@@ -160,6 +172,7 @@ export const UserList = () => {
                                         <TableCell>{user.index}</TableCell>
                                         <TableCell>{user.username}</TableCell>
                                         <TableCell>{user.email}</TableCell>
+                                        <TableCell>{user.role}</TableCell>
                                         <TableCell align={"right"}>{user.num_personal_files}</TableCell>
                                         <TableCell align="center" sx={{pl: 5}}>
                                             <IconButton component={Link} sx={{ mr: 3 }} to={`/user/${user.id}/details`}>
@@ -168,17 +181,21 @@ export const UserList = () => {
                                                 </Tooltip>
                                             </IconButton>
 
-                                            <IconButton component={Link} sx={{ mr: 3 }} to={`/user/${user.id}/edit`}>
-                                                <Tooltip title="Edit user details" arrow>
-                                                    <EditIcon />
-                                                </Tooltip>
-                                            </IconButton>
+                                            {isAuthenticated(context) && (isOwner(context, user) || hasHigherRole(context, user)) && (
+                                                <>
+                                                    <IconButton component={Link} sx={{ mr: 3 }} to={`/user/${user.id}/edit`}>
+                                                        <Tooltip title="Edit user details" arrow>
+                                                            <EditIcon />
+                                                        </Tooltip>
+                                                    </IconButton>
 
-                                            <IconButton onClick={() => handleDelete(user.id)} sx={{ mr: 3 }}>
-                                                <Tooltip title="Delete user" arrow>
-                                                    <DeleteForeverIcon sx={{ color: "red" }} />
-                                                </Tooltip>
-                                            </IconButton>
+                                                    <IconButton onClick={() => handleDelete(user.id)} sx={{ mr: 3 }}>
+                                                        <Tooltip title="Delete user" arrow>
+                                                            <DeleteForeverIcon sx={{ color: "red" }} />
+                                                        </Tooltip>
+                                                    </IconButton>
+                                                </>
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                 ))}
